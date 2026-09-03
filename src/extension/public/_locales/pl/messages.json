@@ -58,7 +58,10 @@
     "message": "Brak połączenia. Ponawiam."
   },
   "banner_auth": {
-    "message": "Sesja wygasła. Zaloguj się ponownie, aby wznowić synchronizację."
+    "message": "Hub odrzucił klucz tej przeglądarki. Sparuj ją ponownie, aby wznowić synchronizację."
+  },
+  "banner_repair": {
+    "message": "Sparuj ponownie"
   },
   "banner_quota": {
     "message": "Hub wyczerpał dzienny limit zapisów. Synchronizacja wróci jutro."
@@ -70,7 +73,28 @@
     "message": "Podłącz swój hub"
   },
   "onboarding_body": {
-    "message": "Roost trzyma karty na infrastrukturze, która należy do Ciebie. Wklej adres wdrożonego Workera."
+    "message": "Roost trzyma karty na infrastrukturze, która należy do Ciebie. Wdróż hub na swoim koncie Cloudflare, a potem wskaż go tej przeglądarce."
+  },
+  "onboarding_step_deploy": {
+    "message": "1. Wdróż swój hub"
+  },
+  "onboarding_step_deploy_body": {
+    "message": "Skopiuj ten klucz, otwórz stronę wdrożenia i wklej go, gdy Cloudflare zapyta o PAIRING_SECRET. Masz już hub? Wklej tutaj jego klucz."
+  },
+  "onboarding_secret_label": {
+    "message": "Klucz parujący"
+  },
+  "onboarding_copy": {
+    "message": "Kopiuj"
+  },
+  "onboarding_copied": {
+    "message": "Skopiowano"
+  },
+  "onboarding_deploy_link": {
+    "message": "Wdróż na Cloudflare"
+  },
+  "onboarding_step_connect": {
+    "message": "2. Połącz tę przeglądarkę"
   },
   "onboarding_url_label": {
     "message": "Adres Workera"
@@ -87,8 +111,8 @@
   "onboarding_error_unreachable": {
     "message": "Pod tym adresem nic nie odpowiada."
   },
-  "onboarding_error_no_access": {
-    "message": "Ten adres odpowiada, ale nie chroni go Cloudflare Access."
+  "onboarding_error_wrong_key": {
+    "message": "Ten adres odpowiada, ale odrzucił ten klucz."
   },
   "lazy_load": {
     "message": "Wczytaj stronę"

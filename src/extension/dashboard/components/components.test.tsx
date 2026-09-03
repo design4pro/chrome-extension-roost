@@ -93,19 +93,34 @@ const nodes: TreeNode[] = [
 ]
 
 describe('Banner', () => {
+  const noop = () => undefined
+
   it('says nothing while the connection is fine', () => {
-    render(<Banner connection="online" />)
+    render(<Banner connection="online" onRepair={noop} />)
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
   it('explains a connection that needs the user', () => {
-    render(<Banner connection="auth_required" />)
+    render(<Banner connection="auth_required" onRepair={noop} />)
     expect(screen.getByRole('status')).toHaveTextContent('banner_auth')
+  })
+
+  it('offers the way back when the hub refused the key', () => {
+    const onRepair = vi.fn()
+    render(<Banner connection="auth_required" onRepair={onRepair} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'banner_repair' }))
+    expect(onRepair).toHaveBeenCalledOnce()
+  })
+
+  it('offers it for nothing else, because nothing else is the user to fix', () => {
+    render(<Banner connection="offline" onRepair={noop} />)
+    expect(screen.queryByRole('button')).toBeNull()
   })
 
   it('says why nothing is syncing when the day budget is gone', () => {
     // The hub stops before the platform does, so this is a wait, not a fault.
-    render(<Banner connection="paused_quota" />)
+    render(<Banner connection="paused_quota" onRepair={noop} />)
     expect(screen.getByRole('status')).toHaveTextContent('banner_quota')
   })
 })

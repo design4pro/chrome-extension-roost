@@ -24,10 +24,10 @@ export function App() {
 
   if (onboarded === undefined) return null
   if (!onboarded) return <Onboarding onDone={() => setOnboarded(true)} />
-  return <Dashboard />
+  return <Dashboard onRepair={() => setOnboarded(false)} />
 }
 
-function Dashboard() {
+function Dashboard({ onRepair }: { onRepair: () => void }) {
   const { mirror, deviceId, connection, send } = usePort()
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -151,7 +151,7 @@ function Dashboard() {
 
   return (
     <div className="flex h-screen flex-col">
-      <Banner connection={connection} />
+      <Banner connection={connection} onRepair={onRepair} />
       <Toolbar query={query} onQuery={setQuery} resultCount={rows.length} />
 
       <div className="flex min-h-0 flex-1">

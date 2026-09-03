@@ -1,25 +1,60 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { browser } from 'wxt/browser'
 import { probeWorker } from '../state/probe'
+import { DEPLOY_URL, generateSecret } from '../pairing'
 import { t } from '../i18n'
 
 /**
- * First run: where the hub is, and what to call this browser.
+ * First run: deploy a hub, then say where it is.
  *
+ * Both steps are on one page and in one form, because they are one decision -
+ * splitting them would leave the user holding a key with nowhere to put it.
  * The host permission is requested here rather than declared in the manifest,
- * because the address is the user's own and unknown at build time. It has to
- * happen inside the click: Chrome refuses `permissions.request` without a
- * user gesture.
+ * since the address is the user's own and unknown at build time, and it has to
+ * happen inside the click: Chrome refuses `permissions.request` without a user
+ * gesture.
  */
+
+/** Kept across a reload, so the key on screen stays the one already deployed. */
+const DRAFT_KEY = 'pairingDraft'
+
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const urlId = useId()
   const nameId = useId()
+  const secretId = useId()
   const errorId = useId()
+  const copiedId = useId()
 
   const [url, setUrl] = useState('')
+  const [secret, setSecret] = useState('')
   const [name, setName] = useState(defaultName())
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    void (async () => {
+      // Re-pairing keeps the address and the name: only the key is in doubt.
+      const saved = await browser.storage.local.get(['workerUrl', 'deviceName'])
+      if (typeof saved.workerUrl === 'string') setUrl(saved.workerUrl)
+      if (typeof saved.deviceName === 'string') setName(saved.deviceName)
+
+      // A key generated on every render would not be the one the user has
+      // already pasted into Cloudflare, so the first one is written down.
+      const draft = await browser.storage.session.get(DRAFT_KEY)
+      const existing = draft[DRAFT_KEY]
+      if (typeof existing === 'string') return setSecret(existing)
+
+      const minted = generateSecret()
+      await browser.storage.session.set({ [DRAFT_KEY]: minted })
+      setSecret(minted)
+    })()
+  }, [])
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(secret)
+    setCopied(true)
+  }
 
   const connect = async () => {
     setError(null)
@@ -43,24 +78,26 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     }
 
     setBusy(true)
-    const result = await probeWorker(origin)
+    const result = await probeWorker(origin, secret)
     setBusy(false)
 
     if (result !== 'ok') {
       setError(
         t(
-          result === 'no_access'
-            ? 'onboarding_error_no_access'
+          result === 'wrong_key'
+            ? 'onboarding_error_wrong_key'
             : 'onboarding_error_unreachable',
         ),
       )
       return
     }
 
-    await browser.storage.local.set({ workerUrl: origin, deviceName: name })
-    // The sign-in page is the hub's own; Access answers it with its login form
-    // and the cookie it leaves behind is what the worker connects with.
-    await browser.tabs.create({ url: `${origin}/auth/done` })
+    await browser.storage.local.set({
+      workerUrl: origin,
+      pairingSecret: secret,
+      deviceName: name,
+    })
+    await browser.storage.session.remove(DRAFT_KEY)
     onDone()
   }
 
@@ -75,6 +112,54 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           void connect()
         }}
       >
+        <h2 className="mt-6 text-[13px] font-medium">
+          {t('onboarding_step_deploy')}
+        </h2>
+        <p className="text-on-surface-variant">
+          {t('onboarding_step_deploy_body')}
+        </p>
+
+        <label className="mt-4 block" htmlFor={secretId}>
+          {t('onboarding_secret_label')}
+        </label>
+        <div className="mt-1 flex gap-2">
+          <input
+            id={secretId}
+            value={secret}
+            required
+            spellCheck={false}
+            aria-describedby={copied ? copiedId : undefined}
+            onChange={(event) => {
+              setSecret(event.target.value)
+              setCopied(false)
+            }}
+            className="h-9 min-w-0 flex-1 rounded-menu border border-outline bg-surface px-3 font-mono text-on-surface"
+          />
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="h-9 rounded-pill border border-outline bg-surface px-4 text-on-surface"
+          >
+            {t('onboarding_copy')}
+          </button>
+        </div>
+        <p id={copiedId} role="status" className="text-on-surface-variant">
+          {copied ? t('onboarding_copied') : ''}
+        </p>
+
+        <a
+          href={DEPLOY_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block"
+        >
+          {t('onboarding_deploy_link')}
+        </a>
+
+        <h2 className="mt-6 text-[13px] font-medium">
+          {t('onboarding_step_connect')}
+        </h2>
+
         <label className="mt-4 block" htmlFor={urlId}>
           {t('onboarding_url_label')}
         </label>

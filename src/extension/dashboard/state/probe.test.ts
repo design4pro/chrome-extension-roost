@@ -1,29 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { probeWorker } from './probe'
 
-const answering = (init: { status: number; type?: ResponseType }) =>
-  (() =>
-    Promise.resolve({
-      status: init.status,
-      type: init.type ?? 'basic',
-    } as Response)) as unknown as typeof fetch
+const answering = (status: number) =>
+  (() => Promise.resolve({ status } as Response)) as unknown as typeof fetch
 
 describe('probeWorker', () => {
   it.each([
-    [
-      'an opaque redirect',
-      { status: 0, type: 'opaqueredirect' as ResponseType },
-      'ok',
-    ],
-    ['a redirect', { status: 302 }, 'ok'],
-    ['a rejected request', { status: 401 }, 'ok'],
-    ['a forbidden request', { status: 403 }, 'ok'],
-    ['an unprotected worker', { status: 204 }, 'no_access'],
-    ['an unprotected page', { status: 200 }, 'no_access'],
-    ['something else entirely', { status: 500 }, 'unreachable'],
-  ])('reads %s', async (_name, init, expected) => {
+    ['a hub that accepts the key', 204, 'ok'],
+    ['a hub answering 200 for it', 200, 'ok'],
+    ['a key the hub refuses', 401, 'wrong_key'],
+    ['a key it refuses more firmly', 403, 'wrong_key'],
+    ['something that is not a hub', 500, 'unreachable'],
+    ['a route that does not exist there', 404, 'unreachable'],
+  ])('reads %s', async (_name, status, expected) => {
     await expect(
-      probeWorker('https://sync.example.com', answering(init)),
+      probeWorker('https://sync.example.com', 'key', answering(status)),
     ).resolves.toBe(expected)
   })
 
@@ -31,18 +22,20 @@ describe('probeWorker', () => {
     const failing = (() =>
       Promise.reject(new Error('nope'))) as unknown as typeof fetch
     await expect(
-      probeWorker('https://sync.example.com', failing),
+      probeWorker('https://sync.example.com', 'key', failing),
     ).resolves.toBe('unreachable')
   })
 
-  it('asks the health route, whatever path the address carries', async () => {
-    const seen: string[] = []
-    const recording = ((input: string) => {
-      seen.push(input)
-      return Promise.resolve({ status: 401, type: 'basic' } as Response)
+  it('asks the health route with the key, and never in the URL', async () => {
+    const seen: Array<[string, RequestInit | undefined]> = []
+    const recording = ((input: string, init?: RequestInit) => {
+      seen.push([input, init])
+      return Promise.resolve({ status: 204 } as Response)
     }) as unknown as typeof fetch
 
-    await probeWorker('https://sync.example.com/', recording)
-    expect(seen).toEqual(['https://sync.example.com/api/health'])
+    await probeWorker('https://sync.example.com/', 'k3y', recording)
+
+    expect(seen[0]?.[0]).toBe('https://sync.example.com/api/health')
+    expect(seen[0]?.[1]?.headers).toEqual({ authorization: 'Bearer k3y' })
   })
 })

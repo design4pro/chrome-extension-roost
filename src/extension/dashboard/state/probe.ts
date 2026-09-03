@@ -1,32 +1,28 @@
 /**
- * Is there a hub at this address, and is Access actually in front of it?
+ * Is there a hub at this address, and does it accept this key?
  *
- * Deliberately a bare `fetch`: no `X-Requested-With`, because the redirect
- * Access answers with is the evidence we are looking for. A 200 without a
- * cookie would mean the Worker is exposed, which is a misconfiguration the
- * onboarding has to report rather than accept.
+ * The two answers the onboarding has to tell apart are "wrong key" and "wrong
+ * address", because they need different corrections from the user. Anything
+ * that is neither - a 500, a page that is not a hub at all - is reported as
+ * unreachable, which is what it is from here.
  */
-export type ProbeResult = 'ok' | 'no_access' | 'unreachable'
+export type ProbeResult = 'ok' | 'wrong_key' | 'unreachable'
 
 export async function probeWorker(
   url: string,
+  secret: string,
   fetcher: typeof fetch = fetch,
 ): Promise<ProbeResult> {
   let response: Response
   try {
     response = await fetcher(new URL('/api/health', url).toString(), {
-      redirect: 'manual',
-      credentials: 'omit',
+      headers: { authorization: `Bearer ${secret}` },
     })
   } catch {
     return 'unreachable'
   }
 
-  // A manual redirect surfaces as an opaque response, and Access answers an
-  // unauthenticated browser request with exactly that.
-  if (response.type === 'opaqueredirect' || response.status === 0) return 'ok'
-  if (response.status === 401 || response.status === 403) return 'ok'
-  if (response.status >= 300 && response.status < 400) return 'ok'
-  if (response.status === 200 || response.status === 204) return 'no_access'
+  if (response.status === 204 || response.status === 200) return 'ok'
+  if (response.status === 401 || response.status === 403) return 'wrong_key'
   return 'unreachable'
 }

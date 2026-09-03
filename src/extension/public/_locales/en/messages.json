@@ -58,7 +58,10 @@
     "message": "Not connected. Retrying."
   },
   "banner_auth": {
-    "message": "Your session expired. Sign in again to keep syncing."
+    "message": "This hub refused this browser’s key. Pair it again to keep syncing."
+  },
+  "banner_repair": {
+    "message": "Pair again"
   },
   "banner_quota": {
     "message": "Your hub has used its daily write allowance. Syncing resumes tomorrow."
@@ -70,7 +73,28 @@
     "message": "Connect your hub"
   },
   "onboarding_body": {
-    "message": "Roost stores your tabs on infrastructure you own. Paste the address of the Worker you deployed."
+    "message": "Roost stores your tabs on infrastructure you own. Deploy a hub to your Cloudflare account, then tell this browser where it is."
+  },
+  "onboarding_step_deploy": {
+    "message": "1. Deploy your hub"
+  },
+  "onboarding_step_deploy_body": {
+    "message": "Copy this key, then open the deploy page and paste it in when Cloudflare asks for PAIRING_SECRET. Already have a hub? Paste its key here instead."
+  },
+  "onboarding_secret_label": {
+    "message": "Pairing key"
+  },
+  "onboarding_copy": {
+    "message": "Copy"
+  },
+  "onboarding_copied": {
+    "message": "Copied"
+  },
+  "onboarding_deploy_link": {
+    "message": "Deploy to Cloudflare"
+  },
+  "onboarding_step_connect": {
+    "message": "2. Connect this browser"
   },
   "onboarding_url_label": {
     "message": "Worker address"
@@ -87,8 +111,8 @@
   "onboarding_error_unreachable": {
     "message": "Nothing answered at that address."
   },
-  "onboarding_error_no_access": {
-    "message": "That address answered, but is not protected by Cloudflare Access."
+  "onboarding_error_wrong_key": {
+    "message": "That address answered, but refused this key."
   },
   "lazy_load": {
     "message": "Load page"
