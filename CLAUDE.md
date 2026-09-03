@@ -1,6 +1,6 @@
 # Working in this repo
 
-Tab Sync is a Chrome MV3 extension (WXT + React 19) and a Cloudflare Worker with
+Roost is a Chrome MV3 extension (WXT + React 19) and a Cloudflare Worker with
 one SQLite Durable Object per user, in a single pnpm package. `docs/SPEC.md` is
 the contract; `docs/ARCHITECTURE.md` is the map.
 

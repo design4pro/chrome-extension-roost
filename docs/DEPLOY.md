@@ -1,6 +1,6 @@
 # Deploying your own hub
 
-Tab Sync has no server run by anyone else. You deploy one Worker and one Durable
+Roost has no server run by anyone else. You deploy one Worker and one Durable
 Object to your own Cloudflare account, put Cloudflare Access in front of it, and
 point the extension at it. Everything below fits in about half an hour on a
 fresh account, and everything except steps 1 and 2 is done by one command.
@@ -77,7 +77,7 @@ The extension id is pinned in the manifest, so both browsers get the same id and
 the same origin.
 
 For a build you can hand to someone else, `pnpm zip` writes a packaged
-`.output/tab-sync-<version>-chrome.zip`.
+`.output/roost-<version>-chrome.zip`.
 
 ## 5. Sign in, once per browser
 

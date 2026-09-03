@@ -3,7 +3,7 @@
     "message": "Karty i zakładki wszystkich przeglądarek w jednym miejscu."
   },
   "app_name": {
-    "message": "Tab Sync"
+    "message": "Roost"
   },
   "search_placeholder": {
     "message": "Szukaj kart i zakładek"
@@ -70,7 +70,7 @@
     "message": "Podłącz swój hub"
   },
   "onboarding_body": {
-    "message": "Tab Sync trzyma karty na infrastrukturze, która należy do Ciebie. Wklej adres wdrożonego Workera."
+    "message": "Roost trzyma karty na infrastrukturze, która należy do Ciebie. Wklej adres wdrożonego Workera."
   },
   "onboarding_url_label": {
     "message": "Adres Workera"

@@ -8,4 +8,4 @@
 export const DEV_ISSUER = 'https://localhost-team.cloudflareaccess.com'
 export const DEV_AUDIENCE = 'local-development-audience'
 export const DEV_KEY_FILE = 'e2e/.dev-key.json'
-export const DEV_KID = 'tab-sync-dev'
+export const DEV_KID = 'roost-dev'

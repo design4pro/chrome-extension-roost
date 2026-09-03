@@ -1,4 +1,4 @@
-# Tab Sync
+# Roost
 
 One place to see and manage the open tabs, tab groups, windows and bookmarks of
 every Chrome-family browser you use - and to reopen a 200-tab Canary window in

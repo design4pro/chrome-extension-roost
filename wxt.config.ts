@@ -11,7 +11,7 @@ import tailwindcss from '@tailwindcss/vite'
  * browser, and `_favicon/` URLs, the dashboard link, and the Access host
  * permission all stop matching between them.
  *
- * Public by design: the private half (tab-sync-extension.pem) stays out of the
+ * Public by design: the private half (roost-extension.pem) stays out of the
  * repo and is only needed to pack a .crx.
  */
 const MANIFEST_KEY =
@@ -35,7 +35,7 @@ export default defineConfig({
   webExt: { disabled: true },
 
   manifest: ({ mode }) => ({
-    name: 'Tab Sync',
+    name: 'Roost',
     description: '__MSG_extension_description__',
     default_locale: 'en',
     // `folderType` and `syncing` on bookmark roots, which bookmarks/mirror.ts

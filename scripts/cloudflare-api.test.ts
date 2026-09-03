@@ -67,12 +67,12 @@ describe('the custom domain payload', () => {
     expect(
       buildDomainPayload({
         hostname: 'sync.example.com',
-        service: 'tab-sync',
+        service: 'roost',
         zoneId: 'zone-1',
       }),
     ).toEqual({
       hostname: 'sync.example.com',
-      service: 'tab-sync',
+      service: 'roost',
       zone_id: 'zone-1',
       environment: 'production',
     })
@@ -93,9 +93,9 @@ describe('findExisting', () => {
   it('finds what a previous run already made', () => {
     const items = [
       { id: '1', name: 'other' },
-      { id: '2', name: 'tab-sync' },
+      { id: '2', name: 'roost' },
     ]
-    expect(findExisting(items, (item) => item.name === 'tab-sync')).toEqual(
+    expect(findExisting(items, (item) => item.name === 'roost')).toEqual(
       items[1],
     )
   })
@@ -136,8 +136,8 @@ describe('exposureVerdict', () => {
 
 describe('workersDevOrigin', () => {
   it('is the hostname the setting is meant to suppress', () => {
-    expect(workersDevOrigin('tab-sync', 'acme')).toBe(
-      'https://tab-sync.acme.workers.dev',
+    expect(workersDevOrigin('roost', 'acme')).toBe(
+      'https://roost.acme.workers.dev',
     )
   })
 })

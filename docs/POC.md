@@ -50,7 +50,7 @@ of something.
 1. Click the toolbar icon. Fill in the Worker address and a name, press
    **Connect**, and let Chrome's permission prompt through.
 2. Sign in with the one-time PIN. The tab says you can close it.
-3. Open the service worker console: `chrome://extensions` -> Tab Sync ->
+3. Open the service worker console: `chrome://extensions` -> Roost ->
    **service worker**. Paste:
 
    ```js

@@ -17,7 +17,7 @@ import {
  */
 
 const run = promisify(execFile)
-const SERVICE = 'tab-sync'
+const SERVICE = 'roost'
 
 interface SubdomainResponse {
   success: boolean

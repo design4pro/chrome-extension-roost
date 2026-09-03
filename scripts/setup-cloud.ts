@@ -103,7 +103,7 @@ async function main(): Promise<void> {
     body: JSON.stringify(
       buildDomainPayload({
         hostname: env.hostname,
-        service: 'tab-sync',
+        service: 'roost',
         zoneId: zone.id,
       }),
     ),

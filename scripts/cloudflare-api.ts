@@ -22,7 +22,7 @@ export function buildAppPayload(
 ): Record<string, unknown> {
   return {
     type: 'self_hosted',
-    name: 'tab-sync',
+    name: 'roost',
     destinations: [{ type: 'public', uri: input.hostname }],
     session_duration: SESSION_DURATION,
     auto_redirect_to_identity: true,
@@ -39,7 +39,7 @@ export function buildAppPayload(
       {
         // The API rejects a policy without a name, and says nothing useful
         // about which field it meant.
-        name: 'tab-sync owner',
+        name: 'roost owner',
         decision: 'allow',
         include: [{ email: { email: input.ownerEmail } }],
         precedence: 1,
