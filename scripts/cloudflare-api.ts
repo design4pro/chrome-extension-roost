@@ -101,3 +101,24 @@ export function healthVerdict(status: number): HealthVerdict {
   if (status === 200 || status === 204) return 'unprotected'
   return 'unreachable'
 }
+
+export type ExposureVerdict = 'closed' | 'open'
+
+/**
+ * Whether a hostname that should not exist answers anyway.
+ *
+ * `workers_dev: false` is meant to leave nothing at `<service>.<team>.workers.dev`,
+ * so a failed connection or Cloudflare's "nothing here" 404 is the pass. Any
+ * other answer means the code is reachable on a hostname Access never sees;
+ * the Worker would reject the request itself, but the point of the setting is
+ * that there is no second door to try.
+ */
+export function exposureVerdict(status: number | null): ExposureVerdict {
+  if (status === null || status === 404) return 'closed'
+  return 'open'
+}
+
+/** Where a Worker would answer if `workers_dev` were left on. */
+export function workersDevOrigin(service: string, subdomain: string): string {
+  return `https://${service}.${subdomain}.workers.dev`
+}

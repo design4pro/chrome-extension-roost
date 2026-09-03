@@ -100,3 +100,11 @@ The suite cannot cover these; they belong to a release.
 `pnpm check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm e2e`,
 then `pnpm zip` for the packaged build. Coverage runs on Istanbul rather than
 V8, because the Workers pool runs inside workerd, which has no V8 profiler.
+
+Before any of that, `docs/adr/0001-poc-access-ws.md` has to exist and record a
+pass for the two questions the design rests on: that the Access cookie is
+attached to the WebSocket upgrade, and that a host permission granted at
+runtime is enough for it. `docs/POC.md` is how those are answered, and
+`pnpm verify:cloud` answers the three that a machine can. A failure on the
+second question removes `pnpm zip` from this list: every user would then need
+their own build with their own hostname compiled into the manifest.

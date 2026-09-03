@@ -5,8 +5,10 @@ import {
   buildAppPayload,
   buildDomainPayload,
   buildOrgPayload,
+  exposureVerdict,
   findExisting,
   healthVerdict,
+  workersDevOrigin,
 } from './cloudflare-api'
 
 const app = buildAppPayload({
@@ -115,5 +117,27 @@ describe('healthVerdict', () => {
     [500, 'unreachable'],
   ])('reads %i as %s', (status, verdict) => {
     expect(healthVerdict(status)).toBe(verdict)
+  })
+})
+
+describe('exposureVerdict', () => {
+  it.each([
+    // Nothing resolved, or Cloudflare's own "there is nothing here" page.
+    [null, 'closed'],
+    [404, 'closed'],
+    // The Worker answered on a hostname Access is not attached to.
+    [401, 'open'],
+    [204, 'open'],
+    [500, 'open'],
+  ])('reads %s as %s', (status, verdict) => {
+    expect(exposureVerdict(status)).toBe(verdict)
+  })
+})
+
+describe('workersDevOrigin', () => {
+  it('is the hostname the setting is meant to suppress', () => {
+    expect(workersDevOrigin('tab-sync', 'acme')).toBe(
+      'https://tab-sync.acme.workers.dev',
+    )
   })
 })
