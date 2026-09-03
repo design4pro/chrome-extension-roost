@@ -1,0 +1,72 @@
+{
+  "name": "tab-sync",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "wxt",
+    "dev:worker": "wrangler dev --port 3011",
+    "build": "wxt build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint",
+    "format": "prettier --write . && eslint --fix",
+    "check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
+    "e2e:update": "playwright test --update-snapshots",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "setup:cloud": "tsx scripts/setup-cloud.ts",
+    "dev-keys": "tsx scripts/dev-keys.ts",
+    "dev-token": "tsx scripts/dev-token.ts",
+    "postinstall": "wxt prepare",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*": "prettier --ignore-unknown --write"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.14.10",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jose": "^6.2.10",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260903.1",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/eslint-config": "^0.4.0",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.6",
+    "@vitest/coverage-istanbul": "^4.1.11",
+    "@webext-core/fake-browser": "^2.0.1",
+    "@wxt-dev/module-react": "^1.2.2",
+    "eslint": "^10.9.1",
+    "husky": "^9.1.7",
+    "jsdom": "^30.0.1",
+    "lint-staged": "^17.4.1",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.128.0",
+    "wxt": "^0.21.4"
+  }
+}

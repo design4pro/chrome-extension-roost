@@ -1,0 +1,12 @@
+# Local-only stand-in for the Cloudflare Access identity provider.
+#
+# `pnpm dev-keys` writes a real .dev.vars from a freshly generated RS256 pair:
+# the public half lands here as DEV_JWKS, the private half in e2e/.dev-key.json
+# (gitignored) where `pnpm dev-token` signs test cookies with it.
+#
+# src/worker/auth/verify.ts only consults DEV_JWKS when the request hostname is
+# localhost, and it still checks signature, issuer and audience. There is no
+# bypass path - a local token is a real token from a local issuer.
+TEAM_DOMAIN="https://localhost-team.cloudflareaccess.com"
+POLICY_AUD="local-development-audience"
+DEV_JWKS='{"keys":[]}'

@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tab-sync",
+  "main": "src/worker/worker.ts",
+  "compatibility_date": "2026-08-17",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Both off on purpose. Cloudflare Access is attached to the custom domain
+  // this Worker is deployed to, and a workers.dev or preview URL is a second
+  // hostname reaching the same code with no Access in front of it. The Worker
+  // verifies the Access JWT itself, so an unprotected hostname would be a 401
+  // rather than a leak - but there is no reason to serve one at all.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "upload_source_maps": true,
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "invocation_logs": true },
+  },
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+
+  // One SQLite Durable Object per user, addressed by the `sub` claim of the
+  // Access JWT. New namespaces can only be SQLite-backed, so no migrations
+  // block is needed - the declarative `exports` form carries the storage kind.
+  "exports": {
+    "UserHub": { "type": "durable-object", "storage": "sqlite" },
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "USER_HUB", "class_name": "UserHub" }],
+  },
+
+  "vars": {
+    // Free-plan Durable Objects allow 100 000 written rows per day per account.
+    // The Worker stops short of that and tells the client to back off, because
+    // the platform's own limit surfaces as a silent failure. "0" disables the
+    // budget, which is what a Paid-plan deployment wants.
+    "WRITE_BUDGET_PER_DAY": "90000",
+  },
+
+  // Secrets, set by `pnpm setup:cloud`:
+  //   TEAM_DOMAIN  https://<team>.cloudflareaccess.com  (JWKS issuer)
+  //   POLICY_AUD   the Access application's `aud` tag
+}
