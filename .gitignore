@@ -1,34 +1,36 @@
-
-!.dev.vars.example
-!.env.example
-# Build output. `.wxt` is WXT's generated project (types, entrypoint wrappers).
 # Dependencies
-# Editor and OS noise
+node_modules
+
+# Build output. `.wxt` is WXT's generated project (types, entrypoint wrappers).
+.output
+.wxt
+
 # Local Cloudflare state: Miniflare's DO simulator lives here.
+.wrangler
+
 # Secrets. `.dev.vars` is the local equivalent of `wrangler secret put`;
-# Test and coverage artefacts. Playwright baselines are NOT ignored: they live
-# The manifest key's private half. The public half is committed in
 # `e2e/.dev-key.json` is the private half of the local Access signing pair,
 # generated on demand by `pnpm dev-keys`.
-# in e2e/__screenshots__ and are reviewed like source.
-# wxt.config.ts on purpose: it pins the extension id across Chrome and Canary.
-*.local
-*.log
-*.pem
-.DS_Store
 .dev.vars
 .dev.vars.*
+!.dev.vars.example
 .env
 .env.*
-.output
-.output/
-.wrangler
-.wxt
-coverage
+!.env.example
+*.local
 e2e/.dev-key.json
-node_modules
+
+# The manifest key's private half. The public half is committed in
+# wxt.config.ts on purpose: it pins the extension id across Chrome and Canary.
+*.pem
+
+# Test and coverage artefacts. Playwright baselines are NOT ignored: they live
+# in e2e/__screenshots__ and are reviewed like source.
+coverage
 playwright-report
-playwright-report/
-playwright/.cache
 test-results
-test-results/
+playwright/.cache
+
+# Editor and OS noise
+.DS_Store
+*.log
