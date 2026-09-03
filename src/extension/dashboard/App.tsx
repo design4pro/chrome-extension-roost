@@ -7,7 +7,7 @@ import { Onboarding } from './components/Onboarding'
 import { Sidebar } from './components/Sidebar'
 import { TabList } from './components/TabList'
 import { Toolbar } from './components/Toolbar'
-import type { Selection, TabRow } from './state/select'
+import type { ItemRow, Selection } from './state/select'
 import { buildRows, buildTree } from './state/select'
 import { usePort } from './state/use-port'
 import { t } from './i18n'
@@ -56,7 +56,33 @@ function Dashboard() {
   // happening at all.
   const reachable = (id: string) => mirror.devices[id]?.online ?? false
 
-  const actions = (row: TabRow): MenuItem[] => {
+  const copyHere = (id: string): MenuItem => ({
+    label: t('menu_copy_bookmark'),
+    onSelect: () => send({ type: 'copy', bookmarkId: id }),
+  })
+
+  const actions = (row: ItemRow): MenuItem[] => {
+    if (row.kind === 'bookmark') {
+      // Copying is this browser's own work, so it does not need the other one
+      // to be awake; removing is a request to whoever owns the bookmark.
+      return [
+        ...(row.data.deviceId === deviceId ? [] : [copyHere(row.id)]),
+        ...(reachable(row.data.deviceId)
+          ? [
+              {
+                label: t('menu_remove_bookmark'),
+                onSelect: () =>
+                  send({
+                    type: 'command',
+                    target: row.data.deviceId,
+                    body: { kind: 'bookmark.remove', bookmarkId: row.id },
+                  }),
+              },
+            ]
+          : []),
+      ]
+    }
+
     if (!reachable(row.data.deviceId)) return []
     const target = row.data.deviceId
 
@@ -83,11 +109,20 @@ function Dashboard() {
   }
 
   const selectedWindow =
-    selection === null ? undefined : mirror.windows[selection.id]
+    selection === null || selection.kind === 'folder'
+      ? undefined
+      : mirror.windows[selection.id]
+
+  const folderActions: MenuItem[] =
+    selection === null ||
+    selection.kind !== 'folder' ||
+    selection.deviceId === deviceId
+      ? []
+      : [copyHere(selection.id)]
 
   const headerActions: MenuItem[] =
     selection === null || selectedWindow === undefined
-      ? []
+      ? folderActions
       : [
           ...(selection.deviceId === deviceId
             ? []
@@ -138,7 +173,7 @@ function Dashboard() {
         ) : (
           <TabList
             rows={rows}
-            title={panelTitle(query)}
+            title={panelTitle(query, selection)}
             actions={actions}
             headerActions={headerActions}
           />
@@ -156,5 +191,9 @@ function Dashboard() {
   )
 }
 
-const panelTitle = (query: string) =>
-  query.trim() === '' ? t('windows_heading') : t('search_label')
+function panelTitle(query: string, selection: Selection | null): string {
+  if (query.trim() !== '') return t('search_label')
+  return selection?.kind === 'folder'
+    ? t('bookmarks_heading')
+    : t('windows_heading')
+}

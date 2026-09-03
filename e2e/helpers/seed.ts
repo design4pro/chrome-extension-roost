@@ -61,3 +61,62 @@ export async function seedWindow(
   device.send({ type: 'ops', clientSeq: 1, ops })
   await device.next('ack')
 }
+
+/**
+ * A bookmarks bar with a folder in it, as if another browser had it.
+ *
+ * Bookmarks are mirrored per browser, so this is the only way a test gets a
+ * second tree to copy from - there is no merging and no second Chrome.
+ */
+export async function seedBookmarks(
+  device: SecondDevice,
+  clientSeq = 2,
+): Promise<void> {
+  const bookmark = (
+    id: string,
+    partial: Partial<Omit<BookmarkSeed, 'deviceId'>>,
+  ): Op => ({
+    op: 'upsert',
+    entity: 'bookmark',
+    id,
+    data: {
+      deviceId: device.deviceId,
+      parentId: null,
+      position: 'n',
+      title: '',
+      url: null,
+      isFolder: false,
+      rootKind: null,
+      dateAdded: 0,
+      ...partial,
+    },
+  })
+
+  device.send({
+    type: 'ops',
+    clientSeq,
+    ops: [
+      bookmark('b-bar', {
+        title: 'Bookmarks bar',
+        isFolder: true,
+        rootKind: 'bookmarks-bar',
+        position: 'b',
+      }),
+      bookmark('b-folder', {
+        title: 'Second device folder',
+        isFolder: true,
+        parentId: 'b-bar',
+        position: 'b',
+      }),
+      bookmark('b-link', {
+        title: 'Second device bookmark',
+        url: 'https://example.com/saved',
+        parentId: 'b-folder',
+        position: 'b',
+      }),
+    ],
+  })
+  await device.next('ack', (frame) => frame.type === 'ack')
+}
+
+type BookmarkSeed = Extract<Op, { op: 'upsert'; entity: 'bookmark' }>['data']

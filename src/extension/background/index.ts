@@ -1,4 +1,5 @@
 import type { browser as Chrome } from 'wxt/browser'
+import type { Mirror } from '#/shared/mirror/types'
 import type { Op } from '#/shared/protocol/ops'
 import { PROTOCOL_VERSION } from '#/shared/protocol/ops'
 import type { Hello } from '#/shared/protocol/messages'
@@ -18,6 +19,9 @@ import { createPortHub } from './port'
 import { createAppliedRing } from './commands/applied-ring'
 import { createRouter } from './commands/router'
 import { executeTabCommand } from './commands/tab-executor'
+import { executeBookmarkCommand } from './bookmarks/executor'
+import { subtreeToCopy } from './bookmarks/mirror'
+import { flushBookmarks } from './bookmarks/flush'
 import { planRestore } from './restore/plan'
 import { activeWindows, resumePending, runRestore } from './restore/run'
 import { openDashboard } from './open-dashboard'
@@ -86,7 +90,9 @@ export async function startBackground(
     deviceId,
     uuid: deps.uuid,
     ring: createAppliedRing(local),
-    execute: (body) => executeTabCommand(body, { browser: deps.browser, ids }),
+    execute: async (body) =>
+      (await executeTabCommand(body, { browser: deps.browser, ids })) ||
+      (await executeBookmarkCommand(body, { browser: deps.browser })),
     send: (ops) => client.send(ops),
   })
 
@@ -122,6 +128,19 @@ export async function startBackground(
     }
 
     const { mirror: current } = await mirror.read()
+
+    if (message.type === 'copy') {
+      const parentId = barOf(current, deviceId)
+      const nodes = subtreeToCopy(current, message.bookmarkId)
+      if (parentId === undefined || nodes.length === 0) return
+      await router.dispatch(deviceId, {
+        kind: 'bookmark.copy',
+        parentId,
+        nodes,
+      })
+      return
+    }
+
     const window = current.windows[message.windowId]
     if (window === undefined) return
 
@@ -161,7 +180,16 @@ export async function startBackground(
     // whose event has already been overtaken, and re-reading it would only ever
     // produce the same nothing.
     await session.set(DIRTY_KEY, [])
-    const ops = await flush(keys, { browser: deps.browser, ids, deviceId })
+    const ops = [
+      ...(await flush(keys, { browser: deps.browser, ids, deviceId })),
+      ...(await flushBookmarks(keys, {
+        browser: deps.browser,
+        deviceId,
+        // Positions already reported are what a folder is diffed against, so
+        // a bookmark nobody moved keeps the key it has and writes no row.
+        positions: positionsOf(await mirror.read(), deviceId),
+      })),
+    ]
     if (ops.length === 0) return
 
     // Our own changes are applied here as well: the hub does not send a device
@@ -227,6 +255,13 @@ export async function startBackground(
     void openLocalFile(deps.browser, request.url)
   })
 
+  // The bookmark tree is sent whole once and then only in the parts that
+  // change; an import replaces so much of it that it is sent whole again.
+  if ((await local.get<number>('bookmarksSyncedAt')) === undefined) {
+    await remember(session, ['bookmarks'])
+    await local.set('bookmarksSyncedAt', deps.clock())
+  }
+
   // Whatever the worker was killed in the middle of is still written down.
   context = { ...context, restoreActive: await activeWindows(session) }
   await resumePending(restore)
@@ -270,6 +305,27 @@ function statusOf(state: WsState): ConnectionStatus {
     default:
       return 'offline'
   }
+}
+
+/** Where a copy lands: this browser's own bookmarks bar. */
+function barOf(mirror: Mirror, deviceId: string): string | undefined {
+  const found = Object.entries(mirror.bookmarks).find(
+    ([, bookmark]) =>
+      bookmark.deviceId === deviceId && bookmark.rootKind === 'bookmarks-bar',
+  )
+  return found?.[0]
+}
+
+/** What this device has told the hub about where its bookmarks sit. */
+function positionsOf(
+  snapshot: { mirror: Mirror },
+  deviceId: string,
+): Record<string, string> {
+  const positions: Record<string, string> = {}
+  for (const [id, bookmark] of Object.entries(snapshot.mirror.bookmarks)) {
+    if (bookmark.deviceId === deviceId) positions[id] = bookmark.position
+  }
+  return positions
 }
 
 async function identify(local: Store, uuid: Uuid): Promise<string> {

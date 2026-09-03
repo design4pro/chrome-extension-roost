@@ -142,3 +142,108 @@ describe('the tab list', () => {
     ])
   })
 })
+
+const bookmark = (
+  partial: Partial<Mirror['bookmarks'][string]>,
+): Mirror['bookmarks'][string] => ({
+  deviceId: 'device-a',
+  parentId: null,
+  position: 'n',
+  title: '',
+  url: null,
+  isFolder: false,
+  rootKind: null,
+  dateAdded: 0,
+  ...partial,
+})
+
+/** A bar with a link and a folder, and one link inside that folder. */
+const withBookmarks = (): Mirror => ({
+  ...mirror(),
+  bookmarks: {
+    bar: bookmark({
+      title: 'Bookmarks bar',
+      isFolder: true,
+      rootKind: 'bookmarks-bar',
+      position: 'b',
+    }),
+    other: bookmark({
+      title: 'Other bookmarks',
+      isFolder: true,
+      rootKind: 'other',
+      position: 'w',
+    }),
+    link: bookmark({
+      title: 'Alpha docs',
+      url: 'https://alpha.test/docs',
+      parentId: 'bar',
+      position: 'b',
+    }),
+    reading: bookmark({
+      title: 'Reading',
+      isFolder: true,
+      parentId: 'bar',
+      position: 'n',
+    }),
+    later: bookmark({
+      title: 'Later',
+      url: 'https://later.test/',
+      parentId: 'reading',
+      position: 'b',
+    }),
+  },
+})
+
+describe('bookmarks in the sidebar', () => {
+  const expandedDevice = new Set(['device-a'])
+
+  it('hangs the roots under the device that owns them', () => {
+    const nodes = buildTree(withBookmarks(), 'device-a', expandedDevice)
+    expect(
+      nodes.filter((node) => node.kind === 'folder').map((node) => node.label),
+    ).toEqual(['Bookmarks bar', 'Other bookmarks'])
+  })
+
+  it('opens a folder only when the user asked for it', () => {
+    const closed = buildTree(withBookmarks(), 'device-a', expandedDevice)
+    const open = buildTree(
+      withBookmarks(),
+      'device-a',
+      new Set(['device-a', 'bar']),
+    )
+    expect(closed.filter((node) => node.kind === 'folder')).toHaveLength(2)
+    expect(
+      open.filter((node) => node.kind === 'folder').map((node) => node.label),
+    ).toEqual(['Bookmarks bar', 'Reading', 'Other bookmarks'])
+  })
+
+  it('marks as expandable only a folder with folders in it', () => {
+    const nodes = buildTree(withBookmarks(), 'device-a', expandedDevice)
+    expect(nodes.filter((node) => node.kind === 'folder')).toMatchObject([
+      { label: 'Bookmarks bar', expandable: true },
+      { label: 'Other bookmarks', expandable: false },
+    ])
+  })
+})
+
+describe('the bookmark list', () => {
+  const folder = { deviceId: 'device-a', kind: 'folder' as const, id: 'bar' }
+
+  it('lists a folder in the order its keys put it', () => {
+    expect(buildRows(withBookmarks(), folder, '').map((row) => row.id)).toEqual(
+      ['link', 'reading'],
+    )
+  })
+
+  it('filters within the selected folder', () => {
+    expect(
+      buildRows(withBookmarks(), folder, 'read').map((row) => row.id),
+    ).toEqual(['reading'])
+  })
+
+  it('searches bookmarks as well as tabs when nothing is selected', () => {
+    expect(
+      buildRows(withBookmarks(), null, 'alpha').map((row) => row.id),
+    ).toEqual(['t1', 'link'])
+  })
+})

@@ -50,5 +50,8 @@ export const DashboardMessage = z.discriminatedUnion('type', [
     body: CommandBody,
   }),
   z.object({ type: z.literal('restore'), windowId: z.string() }),
+  // The dashboard names the folder; the worker turns it into the list of nodes
+  // to recreate, because that reading of the mirror is not the page's job.
+  z.object({ type: z.literal('copy'), bookmarkId: z.string() }),
 ])
 export type DashboardMessage = z.infer<typeof DashboardMessage>

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { connectSecondDevice } from './helpers/second-device'
-import { seedWindow } from './helpers/seed'
+import { seedBookmarks, seedWindow } from './helpers/seed'
 import { expect, test } from './fixtures/extension'
 
 /** Typed just enough for the snippets that run inside the service worker. */
@@ -92,6 +92,30 @@ test.describe('accessibility', () => {
     await expect(page.getByRole('dialog')).toBeVisible()
     await audit(page)
 
+    other.close()
+  })
+
+  test('an expanded bookmark tree and the folder it opens', async ({
+    context,
+    serviceWorker,
+    dashboardUrl,
+  }) => {
+    const other = await connectSecondDevice()
+    await serviceWorker.evaluate(() => chrome.runtime.reload())
+    await seedBookmarks(other)
+
+    const page = await context.newPage()
+    await page.goto(dashboardUrl)
+    await page.getByRole('treeitem', { name: /Second device/ }).click()
+    await page.getByRole('treeitem', { name: /Bookmarks bar/ }).click()
+    await page
+      .getByRole('treeitem', { name: /Bookmarks bar/ })
+      .press('ArrowRight')
+    await expect(
+      page.getByRole('treeitem', { name: /Second device folder/ }),
+    ).toBeVisible()
+
+    await audit(page)
     other.close()
   })
 

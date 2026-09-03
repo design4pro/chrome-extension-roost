@@ -132,5 +132,11 @@
   },
   "restore_started": {
     "message": "Restoring the window…"
+  },
+  "menu_copy_bookmark": {
+    "message": "Copy to this browser"
+  },
+  "menu_remove_bookmark": {
+    "message": "Delete bookmark"
   }
 }

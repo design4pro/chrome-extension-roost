@@ -1,5 +1,5 @@
 import type { Mirror } from '#/shared/mirror/types'
-import type { TabData, TabGroupData } from '#/shared/protocol/ops'
+import type { BookmarkData, TabData, TabGroupData } from '#/shared/protocol/ops'
 
 /**
  * Turning the mirror into the two lists the page renders.
@@ -34,7 +34,17 @@ export interface WindowNode {
   level: 2
 }
 
-export type TreeNode = DeviceNode | WindowNode
+export interface FolderNode {
+  kind: 'folder'
+  id: string
+  deviceId: string
+  label: string
+  /** Whether it holds folders of its own; a folder of links does not expand. */
+  expandable: boolean
+  level: number
+}
+
+export type TreeNode = DeviceNode | WindowNode | FolderNode
 
 export interface GroupRow {
   kind: 'group'
@@ -51,7 +61,17 @@ export interface TabRow {
   context?: { deviceLabel: string }
 }
 
-export type Row = GroupRow | TabRow
+export interface BookmarkRow {
+  kind: 'bookmark'
+  id: string
+  data: BookmarkData
+  context?: { deviceLabel: string }
+}
+
+/** Everything the panel lists that is a thing rather than a heading. */
+export type ItemRow = TabRow | BookmarkRow
+
+export type Row = GroupRow | ItemRow
 
 /** The sidebar: every device, and under it every window it has open. */
 export function buildTree(
@@ -87,9 +107,58 @@ export function buildTree(
         level: 2,
       })
     }
+
+    // The bookmarks of one browser, as that browser has them: there is one
+    // mirror per device and no merged tree, so these hang under the device.
+    nodes.push(...folderNodes(mirror, id, null, 2, expanded))
   }
 
   return nodes
+}
+
+/** The folders of one device, deepest ones only where the user opened them. */
+function folderNodes(
+  mirror: Mirror,
+  deviceId: string,
+  parentId: string | null,
+  level: number,
+  expanded: ReadonlySet<string>,
+): FolderNode[] {
+  const nodes: FolderNode[] = []
+
+  for (const [id, bookmark] of childrenOf(mirror, deviceId, parentId)) {
+    if (!bookmark.isFolder) continue
+
+    nodes.push({
+      kind: 'folder',
+      id,
+      deviceId,
+      label: bookmark.title,
+      expandable: childrenOf(mirror, deviceId, id).some(
+        ([, child]) => child.isFolder,
+      ),
+      level,
+    })
+    if (expanded.has(id)) {
+      nodes.push(...folderNodes(mirror, deviceId, id, level + 1, expanded))
+    }
+  }
+
+  return nodes
+}
+
+/** One folder's contents, in the order the fractional keys put them. */
+function childrenOf(
+  mirror: Mirror,
+  deviceId: string,
+  parentId: string | null,
+): Array<[string, BookmarkData]> {
+  return Object.entries(mirror.bookmarks)
+    .filter(
+      ([, bookmark]) =>
+        bookmark.deviceId === deviceId && bookmark.parentId === parentId,
+    )
+    .sort(([, a], [, b]) => a.position.localeCompare(b.position))
 }
 
 /** The right-hand panel: a window's tabs, or everything a search matched. */
@@ -104,6 +173,14 @@ export function buildRows(
     // Nothing selected and nothing typed is an empty panel on purpose: showing
     // every tab of every device at once is a list nobody reads.
     return trimmed === '' ? [] : searchRows(mirror, trimmed)
+  }
+
+  if (selection.kind === 'folder') {
+    return childrenOf(mirror, selection.deviceId, selection.id)
+      .filter(
+        ([, bookmark]) => trimmed === '' || matchesBookmark(bookmark, trimmed),
+      )
+      .map(([id, data]) => ({ kind: 'bookmark' as const, id, data }))
   }
 
   const window = mirror.windows[selection.id]
@@ -139,19 +216,37 @@ export function buildRows(
 
 /** A search with nothing selected looks at every device the user has. */
 function searchRows(mirror: Mirror, query: string): Row[] {
-  return Object.entries(mirror.tabs)
-    .filter(([, tab]) => matches(tab, query))
-    .map(([id, tab]) => ({
-      kind: 'tab' as const,
-      id,
-      data: tab,
-      context: { deviceLabel: mirror.devices[tab.deviceId]?.name ?? '' },
-    }))
+  const label = (deviceId: string) => ({
+    deviceLabel: mirror.devices[deviceId]?.name ?? '',
+  })
+
+  return [
+    ...Object.entries(mirror.tabs)
+      .filter(([, tab]) => matches(tab, query))
+      .map(([id, tab]) => ({
+        kind: 'tab' as const,
+        id,
+        data: tab,
+        context: label(tab.deviceId),
+      })),
+    ...Object.entries(mirror.bookmarks)
+      .filter(([, bookmark]) => matchesBookmark(bookmark, query))
+      .map(([id, bookmark]) => ({
+        kind: 'bookmark' as const,
+        id,
+        data: bookmark,
+        context: label(bookmark.deviceId),
+      })),
+  ]
 }
 
 const matches = (tab: TabData, query: string) =>
   tab.title.toLowerCase().includes(query) ||
   tab.url.toLowerCase().includes(query)
+
+const matchesBookmark = (bookmark: BookmarkData, query: string) =>
+  bookmark.title.toLowerCase().includes(query) ||
+  (bookmark.url?.toLowerCase().includes(query) ?? false)
 
 function sorted<T>(
   record: Record<string, T>,

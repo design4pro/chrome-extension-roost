@@ -132,5 +132,11 @@
   },
   "restore_started": {
     "message": "Odtwarzam okno…"
+  },
+  "menu_copy_bookmark": {
+    "message": "Kopiuj do tej przeglądarki"
+  },
+  "menu_remove_bookmark": {
+    "message": "Usuń zakładkę"
   }
 }

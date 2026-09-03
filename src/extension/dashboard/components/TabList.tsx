@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { Row, TabRow } from '../state/select'
+import type { ItemRow, Row } from '../state/select'
 import type { MenuItem } from './ContextMenu'
 import { ContextMenu } from './ContextMenu'
 import { Favicon } from './Favicon'
@@ -8,7 +8,9 @@ import { Icon } from './Icon'
 import { t } from '../i18n'
 
 /**
- * The right-hand panel: one window's tabs, or whatever a search matched.
+ * The right-hand panel: one window's tabs, one folder's bookmarks, or whatever
+ * a search matched - and a search matches both kinds at once, which is why they
+ * share a list and a row height rather than having one each.
  *
  * Virtualised because a single window here can hold several hundred tabs, and
  * flat because a virtualiser needs rows of a known height - a group is a
@@ -27,7 +29,7 @@ export function TabList({
   rows: Row[]
   title: string
   /** What this row can be asked to do; empty means no menu at all. */
-  actions?: (row: TabRow) => MenuItem[]
+  actions?: (row: ItemRow) => MenuItem[]
   headerActions?: MenuItem[]
 }) {
   const viewport = useRef<HTMLDivElement>(null)
@@ -38,7 +40,7 @@ export function TabList({
   } | null>(null)
 
   const openMenu = (
-    row: TabRow,
+    row: ItemRow,
     opener: HTMLElement,
     at: { x: number; y: number },
   ) => {
@@ -138,15 +140,15 @@ export function TabList({
                       className="flex h-full w-full items-center gap-3 border-0 bg-transparent px-6 text-left hover:bg-hover"
                       style={{ scrollMarginTop: `${HEADER_HEIGHT}px` }}
                     >
-                      <Favicon url={row.data.url} />
+                      <Favicon url={row.data.url ?? ''} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-on-surface">
                           {row.data.title}
                         </span>
                         <span className="block truncate text-[12px] text-on-surface-variant">
-                          {row.context === undefined
-                            ? hostOf(row.data.url)
-                            : `${row.context.deviceLabel} · ${hostOf(row.data.url)}`}
+                          {[row.context?.deviceLabel, hostOf(row.data.url)]
+                            .filter((part) => part !== undefined && part !== '')
+                            .join(' · ')}
                         </span>
                       </span>
                     </button>
@@ -185,7 +187,9 @@ export function TabList({
   )
 }
 
-function hostOf(url: string): string {
+/** A folder has no address of its own, and nothing to say on its second line. */
+function hostOf(url: string | null): string {
+  if (url === null) return ''
   try {
     return new URL(url).host
   } catch {

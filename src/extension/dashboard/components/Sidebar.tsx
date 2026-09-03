@@ -6,7 +6,8 @@ import { Icon } from './Icon'
 import { t } from '../i18n'
 
 /**
- * Every device, and the windows under the ones the user has opened.
+ * Every device, and the windows and bookmark folders under the ones the user
+ * has opened.
  *
  * An ARIA tree with roving tabindex: one stop for the whole widget, and the
  * arrow keys do the moving, which is what a screen reader user expects here
@@ -35,7 +36,7 @@ export function Sidebar({
   selection: Selection | null
   focusIndex: number
   onFocusIndex: (index: number) => void
-  onToggle: (deviceId: string) => void
+  onToggle: (id: string) => void
   onSelect: (selection: Selection) => void
 }) {
   const list = useRef<HTMLUListElement>(null)
@@ -49,10 +50,17 @@ export function Sidebar({
     item?.[focusIndex]?.focus()
   }, [focusIndex])
 
-  const activate = (node: TreeNode) =>
-    node.kind === 'device'
-      ? onToggle(node.id)
-      : onSelect({ deviceId: node.deviceId, kind: 'window', id: node.id })
+  const activate = (node: TreeNode) => {
+    if (node.kind === 'device') return onToggle(node.id)
+    return onSelect({
+      deviceId: node.deviceId,
+      kind: node.kind === 'window' ? 'window' : 'folder',
+      id: node.id,
+    })
+  }
+
+  const expandable = (node: TreeNode) =>
+    node.kind === 'device' || (node.kind === 'folder' && node.expandable)
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (!KEYS.includes(event.key)) return
@@ -61,7 +69,7 @@ export function Sidebar({
       nodes.map((node) => ({
         id: node.id,
         level: node.level,
-        expandable: node.kind === 'device',
+        expandable: expandable(node),
         expanded: expanded.has(node.id),
       })),
       focusIndex,
@@ -93,10 +101,8 @@ export function Sidebar({
             key={`${node.kind}:${node.id}`}
             role="treeitem"
             aria-level={node.level}
-            aria-expanded={
-              node.kind === 'device' ? expanded.has(node.id) : undefined
-            }
-            aria-selected={node.kind === 'window' && selection?.id === node.id}
+            aria-expanded={expandable(node) ? expanded.has(node.id) : undefined}
+            aria-selected={node.kind !== 'device' && selection?.id === node.id}
             // The focus lives on the tree item itself rather than on a button
             // inside it: a screen reader reads the item's own role and level,
             // and a nested control would be announced instead.
@@ -128,7 +134,7 @@ export function Sidebar({
                       : t('device_offline')}
                 </span>
               </>
-            ) : (
+            ) : node.kind === 'window' ? (
               <>
                 <Icon
                   name="window"
@@ -138,6 +144,14 @@ export function Sidebar({
                 <span className="ml-auto text-on-surface-variant">
                   {node.tabCount}
                 </span>
+              </>
+            ) : (
+              <>
+                <Icon
+                  name="folder"
+                  className="size-4 shrink-0 fill-on-surface-variant"
+                />
+                <span className="truncate">{node.label}</span>
               </>
             )}
           </li>
