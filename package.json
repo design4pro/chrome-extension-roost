@@ -55,6 +55,7 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.6",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-istanbul": "^4.1.11",
     "@webext-core/fake-browser": "^2.0.1",
     "@wxt-dev/module-react": "^1.2.2",
@@ -67,6 +68,7 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.11",
     "wrangler": "^4.128.0",
+    "ws": "^8.21.3",
     "wxt": "^0.21.4"
   }
 }
