@@ -1,12 +1,11 @@
-# Local-only stand-in for the Cloudflare Access identity provider.
+# The key every browser must present to this hub.
 #
-# `pnpm dev-keys` writes a real .dev.vars from a freshly generated RS256 pair:
-# the public half lands here as DEV_JWKS, the private half in e2e/.dev-key.json
-# (gitignored) where `pnpm dev-token` signs test cookies with it.
+# The one-click deploy asks for it by reading this file, and shows the
+# description from `cloudflare.bindings` in package.json next to the field. A
+# deployment without it refuses every request rather than serving everyone -
+# see src/worker/auth/verify.ts.
 #
-# src/worker/auth/verify.ts only consults DEV_JWKS when the request hostname is
-# localhost, and it still checks signature, issuer and audience. There is no
-# bypass path - a local token is a real token from a local issuer.
-TEAM_DOMAIN="https://localhost-team.cloudflareaccess.com"
-POLICY_AUD="local-development-audience"
-DEV_JWKS='{"keys":[]}'
+# Locally, copy this file to `.dev.vars` and use any string you like; the same
+# string goes into the extension's onboarding screen. In production it should be
+# 256 bits of randomness, which is what the extension generates for you.
+PAIRING_SECRET="local-development-pairing-key"

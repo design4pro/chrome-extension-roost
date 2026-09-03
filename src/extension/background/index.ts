@@ -7,7 +7,6 @@ import type { Clock, Random, Store, Uuid } from './deps'
 import { createStore } from './storage'
 import { createIdMap } from './ids/id-map'
 import { createMirrorStore } from './mirror/store'
-import { createWatcher, REFRESH_ALARM, TIMEOUT_ALARM } from './auth/watcher'
 import type { OpenSocket } from './ws/client'
 import { createClient, RETRY_ALARM, WATCHDOG_ALARM } from './ws/client'
 import type { CaptureContext, DirtyKey } from './capture/dirty'
@@ -84,7 +83,7 @@ export async function startBackground(
     snapshotAll: () => snapshotAll(deps, ids, deviceId),
     onCommands: (items) => void router.onIncoming(items),
     onApplied: (ops) => hub.broadcast(ops),
-    requestLogin: () => void watcher.requestLogin(true),
+    requestLogin: () => void badge(true),
   })
 
   const router = createRouter({
@@ -159,12 +158,13 @@ export async function startBackground(
     await runRestore(message.windowId, plan, restore)
   }
 
-  const watcher = createWatcher({
-    browser: deps.browser,
-    workerUrl,
-    clock: deps.clock,
-    onAuthenticated: () => void client.authenticated(),
-  })
+  /**
+   * The toolbar's only job here: say that the hub is refusing this browser's
+   * key. What to do about it is the dashboard's banner, and re-pairing there
+   * is what clears this again.
+   */
+  const badge = (shown: boolean) =>
+    deps.browser.action.setBadgeText({ text: shown ? '!' : '' })
 
   let coalescer: Coalescer = emptyCoalescer()
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -236,17 +236,17 @@ export async function startBackground(
     if (alarm.name === WATCHDOG_ALARM || alarm.name === RETRY_ALARM) {
       void client.handleAlarm(alarm.name).then(() => hub.announce())
     }
-    if (alarm.name === REFRESH_ALARM || alarm.name === TIMEOUT_ALARM) {
-      void watcher.handleAlarm(alarm.name)
-    }
   })
 
   deps.browser.action.onClicked.addListener(
     () => void openDashboard(deps.browser),
   )
 
-  deps.browser.cookies.onChanged.addListener((change) => {
-    if (!change.removed) void watcher.handleCookieChange(change.cookie.name)
+  // A key pasted into the dashboard lands in storage, not here: this is what
+  // turns that write into another connection attempt without a restart.
+  deps.browser.storage.local.onChanged.addListener((changes) => {
+    if (!('pairingSecret' in changes)) return
+    void badge(false).then(() => client.authenticated())
   })
 
   deps.browser.runtime.onMessage.addListener((message: unknown) => {
@@ -267,7 +267,6 @@ export async function startBackground(
   context = { ...context, restoreActive: await activeWindows(session) }
   await resumePending(restore)
   await flushNow()
-  await watcher.check()
   await client.start()
   hub.announce()
 

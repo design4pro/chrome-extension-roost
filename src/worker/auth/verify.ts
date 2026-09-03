@@ -1,86 +1,48 @@
-import { createLocalJWKSet, createRemoteJWKSet, jwtVerify } from 'jose'
-import type { JWTVerifyGetKey } from 'jose'
+import { timingSafeEqual } from 'node:crypto'
+import { readCredential } from './credential'
 
-/** Who Cloudflare Access says is calling. `sub` names the Durable Object. */
-export interface AccessIdentity {
-  sub: string
-  email: string
-}
+/**
+ * The hub trusts one thing: the pairing key set on it at deploy time.
+ *
+ * There is one deployment per person, so there is no identity to establish -
+ * only whether the caller holds the key. That makes the answer a boolean, and
+ * makes an unset key the most dangerous state there is: a Worker deployed
+ * without `PAIRING_SECRET` must refuse everything rather than serve everyone.
+ */
 
 export interface VerifierEnv {
-  /** `https://<team>.cloudflareaccess.com` - the JWKS issuer. */
-  TEAM_DOMAIN: string
-  /** The Access application's `aud` tag. */
-  POLICY_AUD: string
-  /**
-   * A local JWKS, set only in `.dev.vars`. It replaces the remote key set when
-   * the request is to localhost, so `wrangler dev` and the e2e suite can sign
-   * their own tokens - but signature, issuer and audience are still checked.
-   * There is no path here that accepts an unverified token.
-   */
-  DEV_JWKS?: string
+  /** Set at deploy time. Absent or empty means nothing is let through. */
+  PAIRING_SECRET?: string
+}
+
+export type Verifier = (request: Request) => Promise<boolean>
+
+export function createVerifier(env: VerifierEnv): Verifier {
+  const expected = env.PAIRING_SECRET ?? ''
+
+  return async (request) => {
+    if (expected === '') return false
+
+    const offered = readCredential(request)
+    if (offered === null) return false
+
+    return timingSafeEqualStrings(offered, expected)
+  }
 }
 
 /**
- * Access puts the token in a header on requests it proxies. The other two are
- * for requests the extension makes itself: `cf-access-token` when the browser
- * refuses to attach the cookie (third-party cookie blocking), and the cookie
- * itself for the WebSocket upgrade, which cannot carry custom headers.
+ * Compared as SHA-256 digests rather than as the bytes of the keys themselves.
+ *
+ * `timingSafeEqual` throws on buffers of different lengths, so feeding it the
+ * raw keys would turn a wrong-length guess into an exception instead of a 401 -
+ * and would leak the key's length by which of the two happened. A digest is 32
+ * bytes whatever went into it.
  */
-function readToken(request: Request): string | null {
-  const header =
-    request.headers.get('Cf-Access-Jwt-Assertion') ??
-    request.headers.get('cf-access-token')
-  if (header) return header
-
-  const cookie = request.headers.get('Cookie')
-  if (!cookie) return null
-  for (const pair of cookie.split(';')) {
-    const [name, ...rest] = pair.trim().split('=')
-    if (name === 'CF_Authorization') return rest.join('=')
-  }
-  return null
-}
-
-// The remote key set caches keys and refetches on rotation, so it is built once
-// per isolate rather than per request.
-const remoteKeySets = new Map<string, JWTVerifyGetKey>()
-
-function keySetFor(env: VerifierEnv, isLocal: boolean): JWTVerifyGetKey {
-  if (isLocal && env.DEV_JWKS) {
-    return createLocalJWKSet(JSON.parse(env.DEV_JWKS))
-  }
-  const url = `${env.TEAM_DOMAIN}/cdn-cgi/access/certs`
-  let keySet = remoteKeySets.get(url)
-  if (!keySet) {
-    keySet = createRemoteJWKSet(new URL(url))
-    remoteKeySets.set(url, keySet)
-  }
-  return keySet
-}
-
-export type Verifier = (request: Request) => Promise<AccessIdentity | null>
-
-export function createVerifier(env: VerifierEnv): Verifier {
-  return async (request) => {
-    const token = readToken(request)
-    if (!token) return null
-
-    const isLocal = new URL(request.url).hostname === 'localhost'
-    try {
-      const { payload } = await jwtVerify(token, keySetFor(env, isLocal), {
-        issuer: env.TEAM_DOMAIN,
-        audience: env.POLICY_AUD,
-      })
-      // `email` is informational - it is shown nowhere and used for nothing but
-      // logs. `sub` is the identity that matters: it picks the Durable Object.
-      if (typeof payload.sub !== 'string' || payload.sub === '') return null
-      return {
-        sub: payload.sub,
-        email: typeof payload.email === 'string' ? payload.email : '',
-      }
-    } catch {
-      return null
-    }
-  }
+async function timingSafeEqualStrings(a: string, b: string): Promise<boolean> {
+  const encoder = new TextEncoder()
+  const [left, right] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encoder.encode(a)),
+    crypto.subtle.digest('SHA-256', encoder.encode(b)),
+  ])
+  return timingSafeEqual(new Uint8Array(left), new Uint8Array(right))
 }

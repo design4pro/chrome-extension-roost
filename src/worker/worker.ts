@@ -7,8 +7,9 @@ export { UserHub } from './user-hub/UserHub'
 
 export interface Env extends VerifierEnv, RouterEnv {}
 
-// Built on first use and kept for the isolate's life: creating it fetches the
-// team's JWKS, and doing that per request would add a round trip to every call.
+// Built once per isolate. It closes over the secret, so a `wrangler secret put`
+// takes effect on the next isolate rather than the next request - which is what
+// re-pairing after a rotation asks the user to wait for.
 let verifier: Verifier | undefined
 
 export default {

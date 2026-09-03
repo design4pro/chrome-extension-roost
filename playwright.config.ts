@@ -32,12 +32,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev-keys && pnpm dev:worker',
+    command: 'pnpm dev:worker',
     url: 'http://localhost:3011/api/health',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    // Access refuses the request without a token, which is proof the Worker is
-    // up and checking.
+    // The Worker answers this with a 401 until a key is presented, which is
+    // proof enough that it is up and checking.
     ignoreHTTPSErrors: true,
   },
 })

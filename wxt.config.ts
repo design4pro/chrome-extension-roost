@@ -8,7 +8,7 @@ import tailwindcss from '@tailwindcss/vite'
  * across every profile that loads this build - Chrome, Chrome Canary, and the
  * Playwright profile. Without it Chrome derives an id from the unpacked path,
  * so the same build gets a different `chrome-extension://` origin in each
- * browser, and `_favicon/` URLs, the dashboard link, and the Access host
+ * browser, and `_favicon/` URLs, the dashboard link, and the granted host
  * permission all stop matching between them.
  *
  * Public by design: the private half (roost-extension.pem) stays out of the
@@ -52,12 +52,11 @@ export default defineConfig({
       'storage',
       'unlimitedStorage',
       'alarms',
-      'cookies',
       'favicon',
     ],
     // The Worker's host is only known at onboarding, so it is requested at
-    // runtime. host_permissions is what makes the extension's requests to it
-    // same-site, which is what carries the CF_Authorization cookie.
+    // runtime. Nothing about the pairing key needs the request to be same-site;
+    // the permission is what lets the extension reach the host at all.
     optional_host_permissions: ['https://*/*'],
     // The e2e build talks to `wrangler dev` instead, and cannot stop to ask.
     ...(mode === 'e2e'

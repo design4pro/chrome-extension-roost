@@ -5,12 +5,11 @@
   "compatibility_date": "2026-08-17",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Both off on purpose. Cloudflare Access is attached to the custom domain
-  // this Worker is deployed to, and a workers.dev or preview URL is a second
-  // hostname reaching the same code with no Access in front of it. The Worker
-  // verifies the Access JWT itself, so an unprotected hostname would be a 401
-  // rather than a leak - but there is no reason to serve one at all.
-  "workers_dev": false,
+  // On, because it is the whole address the user gets: the one-click deploy
+  // makes no custom domain, so `roost.<subdomain>.workers.dev` is what they
+  // paste back into the extension. Nothing but the pairing key stands in front
+  // of it. Preview URLs stay off - a Worker with a Durable Object gets none.
+  "workers_dev": true,
   "preview_urls": false,
 
   "upload_source_maps": true,
@@ -20,9 +19,10 @@
   },
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
 
-  // One SQLite Durable Object per user, addressed by the `sub` claim of the
-  // Access JWT. New namespaces can only be SQLite-backed, so no migrations
-  // block is needed - the declarative `exports` form carries the storage kind.
+  // One SQLite Durable Object, and only one: a deployment belongs to a single
+  // person, so the object has a fixed name rather than one taken from a claim.
+  // New namespaces can only be SQLite-backed, so no migrations block is needed
+  // - the declarative `exports` form carries the storage kind.
   "exports": {
     "UserHub": { "type": "durable-object", "storage": "sqlite" },
   },
@@ -38,7 +38,7 @@
     "WRITE_BUDGET_PER_DAY": "90000",
   },
 
-  // Secrets, set by `pnpm setup:cloud`:
-  //   TEAM_DOMAIN  https://<team>.cloudflareaccess.com  (JWKS issuer)
-  //   POLICY_AUD   the Access application's `aud` tag
+  // Secret, asked for by the deploy button and declared in `.dev.vars.example`:
+  //   PAIRING_SECRET  the key every browser must present. Unset means the hub
+  //                   refuses everything, which is the safe way to fail.
 }

@@ -2,7 +2,8 @@ import { WebSocket } from 'ws'
 import { decodeServerFrame, encode } from '#/shared/protocol/codec'
 import type { ClientFrame, ServerFrame } from '#/shared/protocol/messages'
 import { PROTOCOL_VERSION } from '#/shared/protocol/ops'
-import { devToken } from '../../scripts/dev-token'
+import { WS_SUBPROTOCOL } from '#/shared/protocol/ws'
+import { PAIRING_SECRET } from '../fixtures/extension'
 
 /**
  * Another browser, without another browser.
@@ -28,10 +29,13 @@ export async function connectSecondDevice(
   deviceId = '22222222-2222-4222-8222-222222222222',
   name = 'Second device',
 ): Promise<SecondDevice> {
-  const token = await devToken()
-  const socket = new WebSocket(`ws://localhost:3011/ws?device=${deviceId}`, {
-    headers: { Cookie: `CF_Authorization=${token}` },
-  })
+  // `ws` is stricter than a browser: it throws when the server answers a
+  // subprotocol offer with nothing. That makes this the one client in the
+  // suite that actually proves the hub echoes what it was offered.
+  const socket = new WebSocket(`ws://localhost:3011/ws?device=${deviceId}`, [
+    WS_SUBPROTOCOL,
+    PAIRING_SECRET,
+  ])
 
   const received: ServerFrame[] = []
   const waiting: Array<() => void> = []

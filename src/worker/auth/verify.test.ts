@@ -1,112 +1,54 @@
 import { describe, expect, it } from 'vitest'
-import { SignJWT, exportJWK, generateKeyPair } from 'jose'
-import type { CryptoKey } from 'jose'
+import { WS_SUBPROTOCOL } from '#/shared/protocol/ws'
 import { createVerifier } from './verify'
-import type { VerifierEnv } from './verify'
 
-const ISSUER = 'https://team.cloudflareaccess.com'
-const AUDIENCE = 'audience-tag'
+const SECRET = 'a-key-of-some-length'
+const verify = createVerifier({ PAIRING_SECRET: SECRET })
 
-const keys = await generateKeyPair('RS256', { extractable: true })
-const jwks = JSON.stringify({
-  keys: [{ ...(await exportJWK(keys.publicKey)), kid: 'k1', alg: 'RS256' }],
-})
+const asking = (headers: Record<string, string>) =>
+  new Request('https://hub/api/health', { headers })
 
-const sign = (
-  over: {
-    issuer?: string
-    audience?: string
-    subject?: string
-    expiresIn?: string
-    key?: CryptoKey
-  } = {},
-) =>
-  new SignJWT({ email: 'user@example.test' })
-    .setProtectedHeader({ alg: 'RS256', kid: 'k1' })
-    .setIssuer(over.issuer ?? ISSUER)
-    .setAudience(over.audience ?? AUDIENCE)
-    .setSubject(over.subject ?? 'user-1')
-    .setIssuedAt()
-    .setExpirationTime(over.expiresIn ?? '1h')
-    .sign(over.key ?? keys.privateKey)
-
-const env: VerifierEnv = {
-  TEAM_DOMAIN: ISSUER,
-  POLICY_AUD: AUDIENCE,
-  DEV_JWKS: jwks,
-}
-
-const request = (headers: Record<string, string>, host = 'localhost') =>
-  new Request(`http://${host}/api/health`, { headers })
-
-describe('createVerifier', () => {
-  it('accepts a valid token from the Access header', async () => {
-    const token = await sign()
-    const identity = await createVerifier(env)(
-      request({ 'Cf-Access-Jwt-Assertion': token }),
+describe('checking the pairing key', () => {
+  it('accepts the key as a bearer token', async () => {
+    expect(await verify(asking({ Authorization: `Bearer ${SECRET}` }))).toBe(
+      true,
     )
-    expect(identity).toEqual({ sub: 'user-1', email: 'user@example.test' })
   })
 
-  it('accepts the cookie, which is all a WebSocket upgrade can carry', async () => {
-    const token = await sign()
-    const identity = await createVerifier(env)(
-      request({ Cookie: `other=1; CF_Authorization=${token}` }),
+  it('accepts the key from a subprotocol list', async () => {
+    const request = asking({
+      'Sec-WebSocket-Protocol': `${WS_SUBPROTOCOL}, ${SECRET}`,
+    })
+    expect(await verify(request)).toBe(true)
+  })
+
+  it('refuses a different key', async () => {
+    expect(await verify(asking({ Authorization: 'Bearer nope' }))).toBe(false)
+  })
+
+  it('refuses a key that is only a prefix of the right one', async () => {
+    // The comparison runs over digests, so a wrong length is a plain no rather
+    // than the exception a raw byte comparison would throw.
+    const short = SECRET.slice(0, 4)
+    expect(await verify(asking({ Authorization: `Bearer ${short}` }))).toBe(
+      false,
     )
-    expect(identity?.sub).toBe('user-1')
   })
 
-  it('accepts the cf-access-token header used when cookies are blocked', async () => {
-    const token = await sign()
-    const identity = await createVerifier(env)(
-      request({ 'cf-access-token': token }),
-    )
-    expect(identity?.sub).toBe('user-1')
+  it('refuses a request carrying no key', async () => {
+    expect(await verify(asking({}))).toBe(false)
   })
 
-  it.each([
-    ['no token at all', {}],
-    ['a token that is not a JWT', { 'cf-access-token': 'nonsense' }],
-  ])('rejects %s', async (_name, headers) => {
-    expect(await createVerifier(env)(request(headers))).toBeNull()
-  })
-
-  it('rejects an expired token', async () => {
-    const token = await sign({ expiresIn: '-1s' })
-    expect(
-      await createVerifier(env)(request({ 'cf-access-token': token })),
-    ).toBeNull()
-  })
-
-  it('rejects a token for another audience', async () => {
-    const token = await sign({ audience: 'someone-elses-app' })
-    expect(
-      await createVerifier(env)(request({ 'cf-access-token': token })),
-    ).toBeNull()
-  })
-
-  it('rejects a token from another issuer', async () => {
-    const token = await sign({ issuer: 'https://evil.example' })
-    expect(
-      await createVerifier(env)(request({ 'cf-access-token': token })),
-    ).toBeNull()
-  })
-
-  it('rejects a token signed by a key it does not know', async () => {
-    const other = await generateKeyPair('RS256', { extractable: true })
-    const token = await sign({ key: other.privateKey })
-    expect(
-      await createVerifier(env)(request({ 'cf-access-token': token })),
-    ).toBeNull()
-  })
-
-  it('ignores DEV_JWKS off localhost', async () => {
-    // The local key set exists so `wrangler dev` can sign its own cookies. If a
-    // deployed Worker ever honoured it, a leaked .dev.vars would be a login.
-    const token = await sign()
-    const identity = await createVerifier(env)(
-      request({ 'cf-access-token': token }, 'sync.example.test'),
-    )
-    expect(identity).toBeNull()
-  })
+  it.each([undefined, ''])(
+    'refuses everything when the deployment has no key set (%s)',
+    async (secret) => {
+      // A Worker deployed without the secret must be shut, not open.
+      const unset = createVerifier({ PAIRING_SECRET: secret })
+      expect(await unset(asking({ Authorization: 'Bearer ' }))).toBe(false)
+      expect(await unset(asking({ Authorization: 'Bearer anything' }))).toBe(
+        false,
+      )
+      expect(await unset(asking({}))).toBe(false)
+    },
+  )
 })

@@ -226,18 +226,4 @@ describe('UserHub', () => {
     )
     expect(offline.ops[0]).toMatchObject({ entity: 'device', id: A })
   })
-
-  it('serves a snapshot over REST as well', async () => {
-    const hub = freshHub()
-    const a = await connect(hub, A)
-    a.hello()
-    await a.next('welcome')
-    a.send({ type: 'ops', clientSeq: 1, ops: [openWindow(A, 'w1')] })
-    await a.next('ack')
-
-    const response = await hub.fetch(new Request('https://hub/api/snapshot'))
-    const body = await response.json<{ seq: number; ops: Array<Op> }>()
-    expect(body.seq).toBeGreaterThan(0)
-    expect(body.ops.some((op) => op.op === 'window_snapshot')).toBe(true)
-  })
 })

@@ -7,13 +7,15 @@ import {
 } from '#/shared/protocol/messages'
 import type { Commands, Hello, OpsFrame } from '#/shared/protocol/messages'
 import { PROTOCOL_VERSION } from '#/shared/protocol/ops'
+import { WS_SUBPROTOCOL } from '#/shared/protocol/ws'
 import type { Op } from '#/shared/protocol/ops'
 import { applyOps, currentSeq } from './apply'
-import { snapshotOps, welcomeFrames } from './delta'
+import { welcomeFrames } from './delta'
 import { prune } from './prune'
 import { checkBudget, recordWrites } from './quota'
 import { broadcast, sendFrame, sendTo } from './sockets'
 import { migrate } from './schema'
+import { offersSubprotocol } from '../auth/credential'
 import type { Sql } from './schema'
 
 const PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000
@@ -62,13 +64,6 @@ export class UserHub extends DurableObject<HubEnv> {
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
 
-    if (url.pathname === '/api/snapshot') {
-      return Response.json({
-        seq: currentSeq(this.sql),
-        ops: snapshotOps(this.sql),
-      })
-    }
-
     const deviceId = url.searchParams.get('device')
     if (!deviceId) return new Response('missing device', { status: 400 })
 
@@ -78,7 +73,17 @@ export class UserHub extends DurableObject<HubEnv> {
     this.ctx.acceptWebSocket(server, [deviceId])
     server.serializeAttachment({ deviceId, hello: false } satisfies Attachment)
 
-    return new Response(null, { status: 101, webSocket: client })
+    // Echoed only when it was offered: a client that named no subprotocol
+    // would refuse a 101 that answers with one. Chrome tolerates the reverse -
+    // an offer we ignore - but a strict client (the e2e second device) does
+    // not, which is what keeps this honest.
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+      ...(offersSubprotocol(request)
+        ? { headers: { 'Sec-WebSocket-Protocol': WS_SUBPROTOCOL } }
+        : {}),
+    })
   }
 
   override async webSocketMessage(

@@ -32,10 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      # The suite loads the built extension from disk and signs its own Access
-      # cookies, so both have to exist before Playwright starts.
+      # The suite loads the built extension from disk, so it has to exist
+      # before Playwright starts. The hub's key comes from `.dev.vars`.
       - run: pnpm build --mode e2e
-      - run: pnpm dev-keys
+      - run: cp .dev.vars.example .dev.vars
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4
