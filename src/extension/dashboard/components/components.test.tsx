@@ -102,6 +102,12 @@ describe('Banner', () => {
     render(<Banner connection="auth_required" />)
     expect(screen.getByRole('status')).toHaveTextContent('banner_auth')
   })
+
+  it('says why nothing is syncing when the day budget is gone', () => {
+    // The hub stops before the platform does, so this is a wait, not a fault.
+    render(<Banner connection="paused_quota" />)
+    expect(screen.getByRole('status')).toHaveTextContent('banner_quota')
+  })
 })
 
 describe('Toolbar', () => {
