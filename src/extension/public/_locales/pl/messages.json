@@ -2,31 +2,61 @@
   "extension_description": {
     "message": "Karty i zakładki wszystkich przeglądarek w jednym miejscu."
   },
-  "app_name": { "message": "Tab Sync" },
-  "search_placeholder": { "message": "Szukaj kart i zakładek" },
-  "search_label": { "message": "Szukaj kart i zakładek" },
+  "app_name": {
+    "message": "Tab Sync"
+  },
+  "search_placeholder": {
+    "message": "Szukaj kart i zakładek"
+  },
+  "search_label": {
+    "message": "Szukaj kart i zakładek"
+  },
   "results_count": {
     "message": "Wyniki: $count$",
-    "placeholders": { "count": { "content": "$1" } }
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
   },
-  "devices_heading": { "message": "Urządzenia" },
-  "windows_heading": { "message": "Okna" },
-  "bookmarks_heading": { "message": "Zakładki" },
+  "devices_heading": {
+    "message": "Urządzenia"
+  },
+  "windows_heading": {
+    "message": "Okna"
+  },
+  "bookmarks_heading": {
+    "message": "Zakładki"
+  },
   "window_label": {
     "message": "Okno z $count$ kartami",
-    "placeholders": { "count": { "content": "$1" } }
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
   },
-  "device_offline": { "message": "Offline" },
-  "device_this": { "message": "Ta przeglądarka" },
-  "empty_title": { "message": "Jeszcze pusto" },
+  "device_offline": {
+    "message": "Offline"
+  },
+  "device_this": {
+    "message": "Ta przeglądarka"
+  },
+  "empty_title": {
+    "message": "Jeszcze pusto"
+  },
   "empty_body": {
     "message": "Otwórz kartę w tej przeglądarce albo zaloguj się w innej, a pojawi się tutaj."
   },
   "no_results": {
     "message": "Żadna karta ani zakładka nie pasuje do wyszukiwania."
   },
-  "banner_connecting": { "message": "Łączenie z hubem…" },
-  "banner_offline": { "message": "Brak połączenia. Ponawiam." },
+  "banner_connecting": {
+    "message": "Łączenie z hubem…"
+  },
+  "banner_offline": {
+    "message": "Brak połączenia. Ponawiam."
+  },
   "banner_auth": {
     "message": "Sesja wygasła. Zaloguj się ponownie, aby wznowić synchronizację."
   },
@@ -36,13 +66,21 @@
   "banner_incompatible": {
     "message": "Rozszerzenie i hub mówią różnymi wersjami protokołu. Zaktualizuj jedno z nich."
   },
-  "onboarding_title": { "message": "Podłącz swój hub" },
+  "onboarding_title": {
+    "message": "Podłącz swój hub"
+  },
   "onboarding_body": {
     "message": "Tab Sync trzyma karty na infrastrukturze, która należy do Ciebie. Wklej adres wdrożonego Workera."
   },
-  "onboarding_url_label": { "message": "Adres Workera" },
-  "onboarding_name_label": { "message": "Nazwa tej przeglądarki" },
-  "onboarding_connect": { "message": "Połącz" },
+  "onboarding_url_label": {
+    "message": "Adres Workera"
+  },
+  "onboarding_name_label": {
+    "message": "Nazwa tej przeglądarki"
+  },
+  "onboarding_connect": {
+    "message": "Połącz"
+  },
   "onboarding_error_url": {
     "message": "Podaj adres https, na przykład https://sync.example.com"
   },
@@ -51,5 +89,48 @@
   },
   "onboarding_error_no_access": {
     "message": "Ten adres odpowiada, ale nie chroni go Cloudflare Access."
+  },
+  "lazy_load": {
+    "message": "Wczytaj stronę"
+  },
+  "row_actions": {
+    "message": "Działania dla $title$",
+    "placeholders": {
+      "title": {
+        "content": "$1"
+      }
+    }
+  },
+  "menu_activate_tab": {
+    "message": "Przejdź do karty"
+  },
+  "menu_close_tab": {
+    "message": "Zamknij kartę"
+  },
+  "menu_close_window": {
+    "message": "Zamknij okno"
+  },
+  "menu_restore_window": {
+    "message": "Odtwórz okno tutaj"
+  },
+  "restore_title": {
+    "message": "Odtwórz to okno tutaj"
+  },
+  "restore_body": {
+    "message": "W nowym oknie otworzy się $count$ kart. Wczyta się tylko pierwsza, reszta poczeka, aż na nią spojrzysz.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "restore_confirm": {
+    "message": "Odtwórz"
+  },
+  "restore_cancel": {
+    "message": "Anuluj"
+  },
+  "restore_started": {
+    "message": "Odtwarzam okno…"
   }
 }

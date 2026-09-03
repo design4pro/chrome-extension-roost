@@ -13,8 +13,13 @@ import type { CaptureContext, DirtyKey } from './capture/dirty'
 import { eventToDirty } from './capture/dirty'
 import { subscribe } from './capture/events'
 import { flush } from './capture/flush'
-import type { ConnectionStatus } from '../port/protocol'
+import type { ConnectionStatus, DashboardMessage } from '../port/protocol'
 import { createPortHub } from './port'
+import { createAppliedRing } from './commands/applied-ring'
+import { createRouter } from './commands/router'
+import { executeTabCommand } from './commands/tab-executor'
+import { planRestore } from './restore/plan'
+import { activeWindows, resumePending, runRestore } from './restore/run'
 import { openDashboard } from './open-dashboard'
 import type { WsState } from './ws/state-machine'
 import type { Coalescer } from './coalescer'
@@ -72,19 +77,67 @@ export async function startBackground(
     deviceId,
     hello: () => hello(deviceId, local, mirror, deps),
     snapshotAll: () => snapshotAll(deps, ids, deviceId),
-    onCommands: () => {
-      // Executing commands is the next layer up; delivery already works.
-    },
+    onCommands: (items) => void router.onIncoming(items),
     onApplied: (ops) => hub.broadcast(ops),
     requestLogin: () => void watcher.requestLogin(true),
   })
+
+  const router = createRouter({
+    deviceId,
+    uuid: deps.uuid,
+    ring: createAppliedRing(local),
+    execute: (body) => executeTabCommand(body, { browser: deps.browser, ids }),
+    send: (ops) => client.send(ops),
+  })
+
+  const restore = {
+    browser: deps.browser,
+    session,
+    onStarted: async () => {
+      // Read back from storage rather than appended in memory: a resume after
+      // the worker was stopped starts from what is written down.
+      context = { ...context, restoreActive: await activeWindows(session) }
+    },
+    onFinished: async (windowId: number) => {
+      // The restored window is this browser's own from here on, so it is
+      // captured the same way any other window would be.
+      context = { ...context, restoreActive: await activeWindows(session) }
+      await remember(session, [`window:${windowId}`])
+      await flushNow()
+    },
+  }
 
   const hub = createPortHub({
     browser: deps.browser,
     mirror,
     deviceId,
     connection: () => statusOf(client.state()),
+    onMessage: (message) => onDashboardMessage(message),
   })
+
+  const onDashboardMessage = async (message: DashboardMessage) => {
+    if (message.type === 'command') {
+      await router.dispatch(message.target, message.body)
+      return
+    }
+
+    const { mirror: current } = await mirror.read()
+    const window = current.windows[message.windowId]
+    if (window === undefined) return
+
+    const plan = planRestore(
+      window,
+      window.tabOrder.flatMap((id) => {
+        const tab = current.tabs[id]
+        return tab === undefined ? [] : [tab]
+      }),
+      current.tabGroups,
+      deps.browser.runtime.getURL('/lazy.html'),
+    )
+    if (plan === null) return
+
+    await runRestore(message.windowId, plan, restore)
+  }
 
   const watcher = createWatcher({
     browser: deps.browser,
@@ -167,13 +220,37 @@ export async function startBackground(
     if (!change.removed) void watcher.handleCookieChange(change.cookie.name)
   })
 
+  deps.browser.runtime.onMessage.addListener((message: unknown) => {
+    // The placeholder page cannot navigate itself to a `file:` URL.
+    const request = message as { type?: string; url?: string }
+    if (request.type !== 'lazy.open-file' || request.url === undefined) return
+    void openLocalFile(deps.browser, request.url)
+  })
+
   // Whatever the worker was killed in the middle of is still written down.
+  context = { ...context, restoreActive: await activeWindows(session) }
+  await resumePending(restore)
   await flushNow()
   await watcher.check()
   await client.start()
   hub.announce()
 
   return { deviceId, flushNow, client }
+}
+
+/**
+ * A restored tab whose address is a local file. Chrome refuses this from the
+ * page itself, and refuses it here too unless the user has ticked "Allow access
+ * to file URLs" for the extension.
+ */
+async function openLocalFile(
+  browser: typeof Chrome,
+  url: string,
+): Promise<void> {
+  if (!(await browser.extension.isAllowedFileSchemeAccess())) return
+
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
+  if (tab?.id !== undefined) await browser.tabs.update(tab.id, { url })
 }
 
 /** The connection as the dashboard needs to describe it. */

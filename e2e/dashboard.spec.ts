@@ -72,4 +72,34 @@ test.describe('the dashboard', () => {
 
     other.close()
   })
+
+  test('opens a row menu from the keyboard', async ({
+    context,
+    serviceWorker,
+    dashboardUrl,
+  }) => {
+    const other = await connectSecondDevice()
+    await serviceWorker.evaluate(() => chrome.runtime.reload())
+    await seedWindow(other, { tabs: 5 })
+
+    const page = await context.newPage()
+    await page.goto(dashboardUrl)
+    await page.getByRole('treeitem', { name: /Second device/ }).click()
+    await page.getByRole('treeitem', { name: /Second device page 0/ }).click()
+
+    await page.getByRole('button', { name: /Second device page 1/ }).focus()
+    await page.keyboard.press('Shift+F10')
+
+    const menu = page.getByRole('menu')
+    await expect(menu).toBeVisible()
+    await expect(menu.getByRole('menuitem').first()).toBeFocused()
+
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+    await expect(
+      page.getByRole('button', { name: /Second device page 1/ }),
+    ).toBeFocused()
+
+    other.close()
+  })
 })

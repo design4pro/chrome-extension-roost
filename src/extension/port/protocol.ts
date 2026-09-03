@@ -1,4 +1,6 @@
+import { z } from 'zod'
 import type { Mirror } from '#/shared/mirror/types'
+import { CommandBody } from '#/shared/protocol/ops'
 import type { Op } from '#/shared/protocol/ops'
 
 /**
@@ -35,3 +37,18 @@ export interface PatchMessage {
 }
 
 export type PortMessage = StateMessage | PatchMessage
+
+/**
+ * What the dashboard asks for. Validated rather than trusted: the page is the
+ * extension's own, but a port is a message channel like any other and the
+ * worker acts on what arrives down it.
+ */
+export const DashboardMessage = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('command'),
+    target: z.string(),
+    body: CommandBody,
+  }),
+  z.object({ type: z.literal('restore'), windowId: z.string() }),
+])
+export type DashboardMessage = z.infer<typeof DashboardMessage>

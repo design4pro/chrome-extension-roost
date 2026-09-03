@@ -67,4 +67,40 @@ test.describe('accessibility', () => {
       other.close()
     })
   }
+
+  test('an open row menu and the restore dialog', async ({
+    context,
+    serviceWorker,
+    dashboardUrl,
+  }) => {
+    const other = await connectSecondDevice()
+    await serviceWorker.evaluate(() => chrome.runtime.reload())
+    await seedWindow(other, { tabs: 5 })
+
+    const page = await context.newPage()
+    await page.goto(dashboardUrl)
+    await page.getByRole('treeitem', { name: /Second device/ }).click()
+    await page.getByRole('treeitem', { name: /Second device page 0/ }).click()
+
+    await page.getByRole('button', { name: /Second device page 1/ }).focus()
+    await page.keyboard.press('Shift+F10')
+    await expect(page.getByRole('menu')).toBeVisible()
+    await audit(page)
+
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: /Restore window here/ }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await audit(page)
+
+    other.close()
+  })
+
+  test('the placeholder page', async ({ context, extensionId }) => {
+    const page = await context.newPage()
+    await page.goto(
+      `chrome-extension://${extensionId}/lazy.html?u=https%3A%2F%2Fexample.com%2F&t=Example`,
+    )
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await audit(page)
+  })
 })

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { Banner } from './Banner'
+import { RestoreDialog } from './RestoreDialog'
 import { Toolbar } from './Toolbar'
 import { Sidebar } from './Sidebar'
 import { TabList } from './TabList'
@@ -31,6 +32,17 @@ globalThis.ResizeObserver = class {
   }
   unobserve() {}
   disconnect() {}
+}
+
+// jsdom implements <dialog> as an element but not its modal behaviour.
+HTMLDialogElement.prototype.showModal = function showModal(
+  this: HTMLDialogElement,
+) {
+  this.open = true
+}
+HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+  this.open = false
+  this.dispatchEvent(new Event('close'))
 }
 
 Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { value: 600 })
@@ -191,5 +203,101 @@ describe('TabList', () => {
   it('says so when a search matched nothing', () => {
     render(<TabList rows={[]} title="Windows" />)
     expect(screen.getByText('no_results')).toBeDefined()
+  })
+})
+
+describe('TabList menus', () => {
+  const actions = (onSelect: () => void) => () => [
+    { label: 'menu_close_tab', onSelect },
+  ]
+
+  it('offers a row menu from the keyboard and puts the focus back', () => {
+    render(
+      <TabList
+        rows={[tab('t1', 'First')]}
+        title="Windows"
+        actions={actions(vi.fn())}
+      />,
+    )
+
+    const row = screen.getByRole('button', { name: /First/ })
+    row.focus()
+    fireEvent.keyDown(row, { key: 'F10', shiftKey: true })
+
+    const item = screen.getByRole('menuitem', { name: 'menu_close_tab' })
+    expect(item).toHaveFocus()
+
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(row).toHaveFocus()
+  })
+
+  it('runs what the menu item says', () => {
+    const onSelect = vi.fn()
+    render(
+      <TabList
+        rows={[tab('t1', 'First')]}
+        title="Windows"
+        actions={actions(onSelect)}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'row_actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'menu_close_tab' }))
+
+    expect(onSelect).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('has no menu for a row with nothing to offer', () => {
+    render(
+      <TabList
+        rows={[tab('t1', 'First')]}
+        title="Windows"
+        actions={() => []}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'row_actions' }))
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('shows the actions the whole window has', () => {
+    const onSelect = vi.fn()
+    render(
+      <TabList
+        rows={[tab('t1', 'First')]}
+        title="Windows"
+        headerActions={[{ label: 'menu_restore_window', onSelect }]}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'menu_restore_window' }))
+    expect(onSelect).toHaveBeenCalledOnce()
+  })
+})
+
+describe('RestoreDialog', () => {
+  it('asks before opening thirty tabs', () => {
+    const onConfirm = vi.fn()
+    render(
+      <RestoreDialog tabCount={30} onConfirm={onConfirm} onClose={vi.fn()} />,
+    )
+
+    expect(screen.getByRole('dialog')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'restore_confirm' }))
+    expect(onConfirm).toHaveBeenCalledOnce()
+  })
+
+  it('closes without restoring anything', () => {
+    const onConfirm = vi.fn()
+    const onClose = vi.fn()
+    render(
+      <RestoreDialog tabCount={30} onConfirm={onConfirm} onClose={onClose} />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'restore_cancel' }))
+    expect(onConfirm).not.toHaveBeenCalled()
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })

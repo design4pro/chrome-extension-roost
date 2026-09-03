@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { browser } from 'wxt/browser'
 import { applyOps } from '#/shared/mirror/apply'
 import type { Mirror } from '#/shared/mirror/types'
 import { emptyMirror } from '#/shared/mirror/types'
-import type { ConnectionStatus, PortMessage } from '#/extension/port/protocol'
+import type {
+  ConnectionStatus,
+  DashboardMessage,
+  PortMessage,
+} from '#/extension/port/protocol'
 import { PORT_NAME } from '#/extension/port/protocol'
 
 /**
@@ -17,16 +21,19 @@ export interface PortState {
   mirror: Mirror
   deviceId: string
   connection: ConnectionStatus
+  /** Ask the worker for something; it answers by changing the mirror. */
+  send: (message: DashboardMessage) => void
 }
 
-const initial: PortState = {
+const initial = {
   mirror: emptyMirror(),
   deviceId: '',
-  connection: 'connecting',
+  connection: 'connecting' as ConnectionStatus,
 }
 
 export function usePort(): PortState {
-  const [state, setState] = useState<PortState>(initial)
+  const [state, setState] = useState(initial)
+  const current = useRef<ReturnType<typeof browser.runtime.connect>>(undefined)
 
   useEffect(() => {
     let closed = false
@@ -35,6 +42,7 @@ export function usePort(): PortState {
     const connect = () => {
       if (closed) return
       port = browser.runtime.connect({ name: PORT_NAME })
+      current.current = port
 
       port.onMessage.addListener((message) => {
         const update = message as PortMessage
@@ -66,5 +74,8 @@ export function usePort(): PortState {
     }
   }, [])
 
-  return state
+  return {
+    ...state,
+    send: (message) => current.current?.postMessage(message),
+  }
 }

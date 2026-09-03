@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { browser } from 'wxt/browser'
+import type { MenuItem } from './components/ContextMenu'
+import { RestoreDialog } from './components/RestoreDialog'
 import { Banner } from './components/Banner'
 import { Onboarding } from './components/Onboarding'
 import { Sidebar } from './components/Sidebar'
 import { TabList } from './components/TabList'
 import { Toolbar } from './components/Toolbar'
-import type { Selection } from './state/select'
+import type { Selection, TabRow } from './state/select'
 import { buildRows, buildTree } from './state/select'
 import { usePort } from './state/use-port'
 import { t } from './i18n'
@@ -26,11 +28,12 @@ export function App() {
 }
 
 function Dashboard() {
-  const { mirror, deviceId, connection } = usePort()
+  const { mirror, deviceId, connection, send } = usePort()
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [selection, setSelection] = useState<Selection | null>(null)
   const [focusIndex, setFocusIndex] = useState(0)
   const [query, setQuery] = useState('')
+  const [restoring, setRestoring] = useState<string | null>(null)
 
   const nodes = useMemo(
     () => buildTree(mirror, deviceId, expanded),
@@ -47,6 +50,67 @@ function Dashboard() {
       if (!next.delete(id)) next.add(id)
       return next
     })
+
+  // A device that is not connected cannot be asked to do anything: the hub
+  // would hold the command until it came back, which looks like nothing
+  // happening at all.
+  const reachable = (id: string) => mirror.devices[id]?.online ?? false
+
+  const actions = (row: TabRow): MenuItem[] => {
+    if (!reachable(row.data.deviceId)) return []
+    const target = row.data.deviceId
+
+    return [
+      {
+        label: t('menu_activate_tab'),
+        onSelect: () =>
+          send({
+            type: 'command',
+            target,
+            body: { kind: 'tab.activate', tabId: row.id },
+          }),
+      },
+      {
+        label: t('menu_close_tab'),
+        onSelect: () =>
+          send({
+            type: 'command',
+            target,
+            body: { kind: 'tab.close', tabId: row.id },
+          }),
+      },
+    ]
+  }
+
+  const selectedWindow =
+    selection === null ? undefined : mirror.windows[selection.id]
+
+  const headerActions: MenuItem[] =
+    selection === null || selectedWindow === undefined
+      ? []
+      : [
+          ...(selection.deviceId === deviceId
+            ? []
+            : [
+                {
+                  label: t('menu_restore_window'),
+                  onSelect: () => setRestoring(selection.id),
+                },
+              ]),
+          ...(reachable(selection.deviceId)
+            ? [
+                {
+                  label: t('menu_close_window'),
+                  onSelect: () =>
+                    send({
+                      type: 'command',
+                      target: selection.deviceId,
+                      body: { kind: 'window.close', windowId: selection.id },
+                    }),
+                },
+              ]
+            : []),
+        ]
 
   const empty = Object.keys(mirror.tabs).length === 0
 
@@ -72,9 +136,22 @@ function Dashboard() {
             <p className="text-on-surface-variant">{t('empty_body')}</p>
           </main>
         ) : (
-          <TabList rows={rows} title={panelTitle(query)} />
+          <TabList
+            rows={rows}
+            title={panelTitle(query)}
+            actions={actions}
+            headerActions={headerActions}
+          />
         )}
       </div>
+
+      {restoring === null ? null : (
+        <RestoreDialog
+          tabCount={mirror.windows[restoring]?.tabOrder.length ?? 0}
+          onConfirm={() => send({ type: 'restore', windowId: restoring })}
+          onClose={() => setRestoring(null)}
+        />
+      )}
     </div>
   )
 }

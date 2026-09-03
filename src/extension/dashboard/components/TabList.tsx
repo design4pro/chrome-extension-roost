@@ -1,7 +1,10 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { Row } from '../state/select'
+import type { Row, TabRow } from '../state/select'
+import type { MenuItem } from './ContextMenu'
+import { ContextMenu } from './ContextMenu'
 import { Favicon } from './Favicon'
+import { Icon } from './Icon'
 import { t } from '../i18n'
 
 /**
@@ -15,8 +18,40 @@ import { t } from '../i18n'
 const ROW_HEIGHT = 48
 const HEADER_HEIGHT = 48
 
-export function TabList({ rows, title }: { rows: Row[]; title: string }) {
+export function TabList({
+  rows,
+  title,
+  actions,
+  headerActions = [],
+}: {
+  rows: Row[]
+  title: string
+  /** What this row can be asked to do; empty means no menu at all. */
+  actions?: (row: TabRow) => MenuItem[]
+  headerActions?: MenuItem[]
+}) {
   const viewport = useRef<HTMLDivElement>(null)
+  const [menu, setMenu] = useState<{
+    items: MenuItem[]
+    at: { x: number; y: number }
+    opener: HTMLElement
+  } | null>(null)
+
+  const openMenu = (
+    row: TabRow,
+    opener: HTMLElement,
+    at: { x: number; y: number },
+  ) => {
+    const items = actions?.(row) ?? []
+    if (items.length > 0) setMenu({ items, at, opener })
+  }
+
+  const closeMenu = () => {
+    // Back where it came from: a menu that drops the focus on the body leaves
+    // a keyboard user at the top of the page.
+    menu?.opener.focus()
+    setMenu(null)
+  }
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -29,9 +64,21 @@ export function TabList({ rows, title }: { rows: Row[]; title: string }) {
     <div ref={viewport} className="flex-1 overflow-y-auto">
       <h2
         data-testid="panel-header"
-        className="sticky top-0 z-10 m-0 flex h-12 items-center bg-surface1 px-6 text-[14px] font-medium"
+        className="sticky top-0 z-10 m-0 flex h-12 items-center gap-3 bg-surface1 px-6 text-[14px] font-medium"
       >
         {title}
+        <span className="ml-auto flex gap-2">
+          {headerActions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={action.onSelect}
+              className="h-9 rounded-pill border border-outline bg-transparent px-4 text-[13px] font-normal text-on-surface"
+            >
+              {action.label}
+            </button>
+          ))}
+        </span>
       </h2>
 
       {rows.length === 0 ? (
@@ -69,28 +116,70 @@ export function TabList({ rows, title }: { rows: Row[]; title: string }) {
                     {row.title}
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    className="flex h-full w-full items-center gap-3 border-0 bg-transparent px-6 text-left hover:bg-hover"
-                    style={{ scrollMarginTop: `${HEADER_HEIGHT}px` }}
-                  >
-                    <Favicon url={row.data.url} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-on-surface">
-                        {row.data.title}
+                  <div className="group flex h-full items-center pe-4">
+                    <button
+                      type="button"
+                      onContextMenu={(event) => {
+                        event.preventDefault()
+                        openMenu(row, event.currentTarget, {
+                          x: event.clientX,
+                          y: event.clientY,
+                        })
+                      }}
+                      onKeyDown={(event) => {
+                        if (!event.shiftKey || event.key !== 'F10') return
+                        event.preventDefault()
+                        const box = event.currentTarget.getBoundingClientRect()
+                        openMenu(row, event.currentTarget, {
+                          x: box.left + 48,
+                          y: box.bottom,
+                        })
+                      }}
+                      className="flex h-full w-full items-center gap-3 border-0 bg-transparent px-6 text-left hover:bg-hover"
+                      style={{ scrollMarginTop: `${HEADER_HEIGHT}px` }}
+                    >
+                      <Favicon url={row.data.url} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-on-surface">
+                          {row.data.title}
+                        </span>
+                        <span className="block truncate text-[12px] text-on-surface-variant">
+                          {row.context === undefined
+                            ? hostOf(row.data.url)
+                            : `${row.context.deviceLabel} · ${hostOf(row.data.url)}`}
+                        </span>
                       </span>
-                      <span className="block truncate text-[12px] text-on-surface-variant">
-                        {row.context === undefined
-                          ? hostOf(row.data.url)
-                          : `${row.context.deviceLabel} · ${hostOf(row.data.url)}`}
-                      </span>
-                    </span>
-                  </button>
+                    </button>
+                    {/* Always rendered, only visible on hover or focus: a
+                        control that appears on hover alone cannot be reached
+                        by keyboard, and one that is 32px stays big enough to
+                        hit (WCAG 2.5.8). */}
+                    <button
+                      type="button"
+                      aria-label={t('row_actions', row.data.title)}
+                      onClick={(event) =>
+                        openMenu(row, event.currentTarget, {
+                          x: event.clientX,
+                          y: event.clientY,
+                        })
+                      }
+                      className="size-8 shrink-0 rounded-full border-0 bg-transparent opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                    >
+                      <Icon
+                        name="kebab"
+                        className="mx-auto size-5 fill-on-surface-variant"
+                      />
+                    </button>
+                  </div>
                 )}
               </li>
             )
           })}
         </ul>
+      )}
+
+      {menu === null ? null : (
+        <ContextMenu items={menu.items} at={menu.at} onClose={closeMenu} />
       )}
     </div>
   )

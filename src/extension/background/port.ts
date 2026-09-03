@@ -1,7 +1,7 @@
 import type { Browser, browser as Chrome } from 'wxt/browser'
 import type { Op } from '#/shared/protocol/ops'
 import type { ConnectionStatus, PortMessage } from '../port/protocol'
-import { PORT_NAME } from '../port/protocol'
+import { DashboardMessage, PORT_NAME } from '../port/protocol'
 import type { MirrorStore } from './mirror/store'
 
 /**
@@ -17,6 +17,8 @@ export interface PortHubDeps {
   mirror: MirrorStore
   deviceId: string
   connection: () => ConnectionStatus
+  /** What the page asked for, once it has been checked. */
+  onMessage: (message: DashboardMessage) => Promise<void>
 }
 
 export interface PortHub {
@@ -43,6 +45,13 @@ export function createPortHub(deps: PortHubDeps): PortHub {
 
     ports.add(port)
     port.onDisconnect.addListener(() => ports.delete(port))
+
+    port.onMessage.addListener((raw) => {
+      const parsed = DashboardMessage.safeParse(raw)
+      // A message that does not parse is a bug in the page, not something the
+      // worker should guess at.
+      if (parsed.success) void deps.onMessage(parsed.data)
+    })
 
     void deps.mirror.read().then(({ mirror }) =>
       send(port, {
