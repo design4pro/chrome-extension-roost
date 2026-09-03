@@ -64,7 +64,10 @@ export default defineConfig({
       // Istanbul, not the house default V8: the Workers pool runs tests inside
       // workerd, which does not expose V8's coverage profiler.
       provider: 'istanbul',
-      include: ['src/**', 'scripts/**'],
+      // Only what is actually executable: the uncovered-file pass parses
+      // everything it is pointed at, and markup, styles and locale files are
+      // not JavaScript.
+      include: ['src/**/*.{ts,tsx}', 'scripts/**/*.ts'],
       exclude: [
         '**/*.test.*',
         'src/extension/test/**',

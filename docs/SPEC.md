@@ -60,6 +60,17 @@ matter, asserted in `apply.test.ts`:
 - closing a 200-tab window: at most three rows (cascade, not per tab)
 - re-sending an unchanged snapshot or bookmark tree: zero rows
 
+## Deploying
+
+The hub runs on the user's own Cloudflare account: `pnpm setup:cloud` deploys the
+Worker, attaches the custom domain, and creates the Access application that
+guards it. The two steps no API can do - creating the Zero Trust team and making
+the API token - are the first two in [DEPLOY.md](DEPLOY.md).
+
+Access sessions last 30 days and are per browser profile, so Chrome and Canary
+sign in separately. That is the design, not a defect: the cookie jar is what
+proves the request belongs to the account.
+
 ## Accessibility
 
 WCAG 2.2 AA. Both panels are APG treegrids with roving tabindex; every action is
@@ -78,3 +89,14 @@ The suite cannot cover these; they belong to a release.
       fallback carries the token
 - [ ] Memory Saver discards a tab and no ghost row appears
 - [ ] the dashboard next to `chrome://bookmarks` and Tab Search, light and dark
+- [ ] Google Sync running on both profiles: copying a folder across produces no
+      ping-pong in `wrangler tail`
+- [ ] a fresh Cloudflare account reaches "connected" in both browsers using only
+      `docs/DEPLOY.md` - any step the document does not cover is a documentation
+      bug and is fixed before the release, not after
+
+## Release
+
+`pnpm check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm e2e`,
+then `pnpm zip` for the packaged build. Coverage runs on Istanbul rather than
+V8, because the Workers pool runs inside workerd, which has no V8 profiler.
