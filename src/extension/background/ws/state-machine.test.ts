@@ -84,7 +84,7 @@ describe('the connection', () => {
         },
         context,
       ).effects,
-    ).toEqual([{ type: 'apply', ops: [] }])
+    ).toEqual([{ type: 'apply', ops: [], seqTo: 2 }])
 
     expect(
       reduce(

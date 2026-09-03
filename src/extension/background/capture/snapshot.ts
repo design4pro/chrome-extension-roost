@@ -24,6 +24,18 @@ export function tabData(
   ids: TabIds,
   deviceId: string,
 ): TabData {
+  // Chrome's types promise these on every tab; Chrome itself omits them on
+  // tabs it has not loaded, and a missing field is a frame the hub refuses.
+  const live: Omit<
+    Browser.tabs.Tab,
+    'active' | 'discarded' | 'lastAccessed' | 'pinned'
+  > & {
+    active?: boolean
+    discarded?: boolean
+    lastAccessed?: number
+    pinned?: boolean
+  } = tab
+
   return {
     deviceId,
     windowId: ids.windowId,
@@ -33,10 +45,10 @@ export function tabData(
     url: unwrapLazy(tab.url ?? tab.pendingUrl ?? ''),
     title: tab.title ?? '',
     favIconUrl: tab.favIconUrl ?? null,
-    pinned: tab.pinned,
-    discarded: tab.discarded,
-    active: tab.active,
-    lastAccessed: tab.lastAccessed,
+    pinned: live.pinned ?? false,
+    discarded: live.discarded ?? false,
+    active: live.active ?? false,
+    lastAccessed: live.lastAccessed ?? 0,
   }
 }
 

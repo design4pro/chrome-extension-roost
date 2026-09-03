@@ -52,7 +52,7 @@ export type WsEffect =
   | { type: 'schedule'; at: number }
   | { type: 'probe_auth' }
   | { type: 'request_login' }
-  | { type: 'apply'; ops: Op[] }
+  | { type: 'apply'; ops: Op[]; seqTo: number }
   | { type: 'acked'; clientSeq: number; seq: number }
   | { type: 'commands'; items: Commands['items'] }
 
@@ -184,7 +184,10 @@ function frame(
       }
 
     case 'changes':
-      return { state, effects: [{ type: 'apply', ops: received.ops }] }
+      return {
+        state,
+        effects: [{ type: 'apply', ops: received.ops, seqTo: received.seqTo }],
+      }
 
     case 'ack':
       return {
