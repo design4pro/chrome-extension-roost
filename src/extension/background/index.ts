@@ -13,6 +13,10 @@ import type { CaptureContext, DirtyKey } from './capture/dirty'
 import { eventToDirty } from './capture/dirty'
 import { subscribe } from './capture/events'
 import { flush } from './capture/flush'
+import type { ConnectionStatus } from '../port/protocol'
+import { createPortHub } from './port'
+import { openDashboard } from './open-dashboard'
+import type { WsState } from './ws/state-machine'
 import type { Coalescer } from './coalescer'
 import { emptyCoalescer, mark, tick } from './coalescer'
 
@@ -71,10 +75,15 @@ export async function startBackground(
     onCommands: () => {
       // Executing commands is the next layer up; delivery already works.
     },
-    onApplied: () => {
-      // The dashboard listens for this once it exists.
-    },
+    onApplied: (ops) => hub.broadcast(ops),
     requestLogin: () => void watcher.requestLogin(true),
+  })
+
+  const hub = createPortHub({
+    browser: deps.browser,
+    mirror,
+    deviceId,
+    connection: () => statusOf(client.state()),
   })
 
   const watcher = createWatcher({
@@ -105,6 +114,7 @@ export async function startBackground(
     // Our own changes are applied here as well: the hub does not send a device
     // its own ops back, so this is what keeps the local mirror complete.
     await mirror.apply(ops)
+    hub.broadcast(ops)
     await client.send(ops)
   }
 
@@ -142,12 +152,16 @@ export async function startBackground(
 
   deps.browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === WATCHDOG_ALARM || alarm.name === RETRY_ALARM) {
-      void client.handleAlarm(alarm.name)
+      void client.handleAlarm(alarm.name).then(() => hub.announce())
     }
     if (alarm.name === REFRESH_ALARM || alarm.name === TIMEOUT_ALARM) {
       void watcher.handleAlarm(alarm.name)
     }
   })
+
+  deps.browser.action.onClicked.addListener(
+    () => void openDashboard(deps.browser),
+  )
 
   deps.browser.cookies.onChanged.addListener((change) => {
     if (!change.removed) void watcher.handleCookieChange(change.cookie.name)
@@ -157,8 +171,28 @@ export async function startBackground(
   await flushNow()
   await watcher.check()
   await client.start()
+  hub.announce()
 
   return { deviceId, flushNow, client }
+}
+
+/** The connection as the dashboard needs to describe it. */
+function statusOf(state: WsState): ConnectionStatus {
+  switch (state.kind) {
+    case 'open':
+      return 'online'
+    case 'auth_required':
+      return 'auth_required'
+    case 'paused_quota':
+      return 'paused_quota'
+    case 'incompatible':
+      return 'incompatible'
+    case 'connecting':
+    case 'handshaking':
+      return 'connecting'
+    default:
+      return 'offline'
+  }
 }
 
 async function identify(local: Store, uuid: Uuid): Promise<string> {

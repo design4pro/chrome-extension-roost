@@ -12,7 +12,12 @@
     "wxt.config.ts"
   ],
 
-  "exclude": ["node_modules", ".output", ".wxt"],
+  "exclude": [
+    "node_modules",
+    ".output",
+    ".wxt/types",
+    ".wxt/eslint-auto-imports.mjs"
+  ],
 
   "compilerOptions": {
     "target": "ES2022",

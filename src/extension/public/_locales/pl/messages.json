@@ -1,5 +1,55 @@
 {
   "extension_description": {
-    "message": "Zobacz karty i zakładki wszystkich swoich przeglądarek w jednym miejscu, synchronizowane przez Twoje konto Cloudflare."
+    "message": "Karty i zakładki wszystkich przeglądarek w jednym miejscu."
+  },
+  "app_name": { "message": "Tab Sync" },
+  "search_placeholder": { "message": "Szukaj kart i zakładek" },
+  "search_label": { "message": "Szukaj kart i zakładek" },
+  "results_count": {
+    "message": "Wyniki: $count$",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "devices_heading": { "message": "Urządzenia" },
+  "windows_heading": { "message": "Okna" },
+  "bookmarks_heading": { "message": "Zakładki" },
+  "window_label": {
+    "message": "Okno z $count$ kartami",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "device_offline": { "message": "Offline" },
+  "device_this": { "message": "Ta przeglądarka" },
+  "empty_title": { "message": "Jeszcze pusto" },
+  "empty_body": {
+    "message": "Otwórz kartę w tej przeglądarce albo zaloguj się w innej, a pojawi się tutaj."
+  },
+  "no_results": {
+    "message": "Żadna karta ani zakładka nie pasuje do wyszukiwania."
+  },
+  "banner_connecting": { "message": "Łączenie z hubem…" },
+  "banner_offline": { "message": "Brak połączenia. Ponawiam." },
+  "banner_auth": {
+    "message": "Sesja wygasła. Zaloguj się ponownie, aby wznowić synchronizację."
+  },
+  "banner_quota": {
+    "message": "Hub wyczerpał dzienny limit zapisów. Synchronizacja wróci jutro."
+  },
+  "banner_incompatible": {
+    "message": "Rozszerzenie i hub mówią różnymi wersjami protokołu. Zaktualizuj jedno z nich."
+  },
+  "onboarding_title": { "message": "Podłącz swój hub" },
+  "onboarding_body": {
+    "message": "Tab Sync trzyma karty na infrastrukturze, która należy do Ciebie. Wklej adres wdrożonego Workera."
+  },
+  "onboarding_url_label": { "message": "Adres Workera" },
+  "onboarding_name_label": { "message": "Nazwa tej przeglądarki" },
+  "onboarding_connect": { "message": "Połącz" },
+  "onboarding_error_url": {
+    "message": "Podaj adres https, na przykład https://sync.example.com"
+  },
+  "onboarding_error_unreachable": {
+    "message": "Pod tym adresem nic nie odpowiada."
+  },
+  "onboarding_error_no_access": {
+    "message": "Ten adres odpowiada, ale nie chroni go Cloudflare Access."
   }
 }

@@ -1,4 +1,6 @@
-import { beforeEach } from 'vitest'
+import { afterEach, beforeEach } from 'vitest'
+import { cleanup } from '@testing-library/react'
+import '@testing-library/jest-dom/vitest'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { installMissingEvents } from './fake-events'
 
@@ -8,3 +10,7 @@ beforeEach(() => {
   fakeBrowser.reset()
   installMissingEvents(fakeBrowser as never)
 })
+
+// Vitest runs without globals here, so Testing Library's own auto-cleanup never
+// registers itself and a rendered tree would outlive its test.
+afterEach(cleanup)

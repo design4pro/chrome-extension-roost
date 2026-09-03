@@ -42,14 +42,20 @@ const PATHS = [
   'bookmarks.onImportBegan',
   'bookmarks.onImportEnded',
   'cookies.onChanged',
+  'runtime.onConnect',
+  'action.onClicked',
 ]
 
 /** Replace every listener the fake browser refuses to register. */
 export function installMissingEvents(target: Record<string, never>): void {
   for (const path of PATHS) {
     const [namespace, event] = path.split('.') as [string, string]
-    const api = target[namespace] as Record<string, unknown> | undefined
-    if (api === undefined) continue
+    let api = target[namespace] as Record<string, unknown> | undefined
+    if (api === undefined) {
+      // A namespace the fake browser leaves out entirely, such as `action`.
+      api = {}
+      ;(target as Record<string, unknown>)[namespace] = api
+    }
 
     const existing = api[event] as FakeEvent | undefined
     try {

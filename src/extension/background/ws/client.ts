@@ -58,7 +58,7 @@ export interface ClientDeps {
   /** Everything this device has open, for when the backlog outgrows itself. */
   snapshotAll: () => Promise<Op[]>
   onCommands: (items: Commands['items']) => void
-  onApplied: () => void
+  onApplied: (ops: Op[]) => void
   requestLogin: () => void
 }
 
@@ -122,7 +122,7 @@ export function createClient(deps: ClientDeps): Client {
       case 'apply':
         if (effect.ops.length > 0) {
           await deps.mirror.apply(effect.ops, effect.seqTo)
-          deps.onApplied()
+          deps.onApplied(effect.ops)
         }
         return
 

@@ -1,5 +1,53 @@
 {
   "extension_description": {
-    "message": "See and manage the tabs and bookmarks of every browser you use, synced through your own Cloudflare account."
+    "message": "See and manage the tabs and bookmarks of all your browsers in one place."
+  },
+  "app_name": { "message": "Tab Sync" },
+  "search_placeholder": { "message": "Search tabs and bookmarks" },
+  "search_label": { "message": "Search tabs and bookmarks" },
+  "results_count": {
+    "message": "$count$ results",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "devices_heading": { "message": "Devices" },
+  "windows_heading": { "message": "Windows" },
+  "bookmarks_heading": { "message": "Bookmarks" },
+  "window_label": {
+    "message": "Window with $count$ tabs",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "device_offline": { "message": "Offline" },
+  "device_this": { "message": "This browser" },
+  "empty_title": { "message": "Nothing here yet" },
+  "empty_body": {
+    "message": "Open a tab in this browser, or sign in on another one, and it will show up here."
+  },
+  "no_results": { "message": "No tabs or bookmarks match your search." },
+  "banner_connecting": { "message": "Connecting to your hub…" },
+  "banner_offline": { "message": "Not connected. Retrying." },
+  "banner_auth": {
+    "message": "Your session expired. Sign in again to keep syncing."
+  },
+  "banner_quota": {
+    "message": "Your hub has used its daily write allowance. Syncing resumes tomorrow."
+  },
+  "banner_incompatible": {
+    "message": "The extension and the hub speak different versions. Update one of them."
+  },
+  "onboarding_title": { "message": "Connect your hub" },
+  "onboarding_body": {
+    "message": "Tab Sync stores your tabs on infrastructure you own. Paste the address of the Worker you deployed."
+  },
+  "onboarding_url_label": { "message": "Worker address" },
+  "onboarding_name_label": { "message": "Name for this browser" },
+  "onboarding_connect": { "message": "Connect" },
+  "onboarding_error_url": {
+    "message": "Enter an https address, for example https://sync.example.com"
+  },
+  "onboarding_error_unreachable": {
+    "message": "Nothing answered at that address."
+  },
+  "onboarding_error_no_access": {
+    "message": "That address answered, but is not protected by Cloudflare Access."
   }
 }

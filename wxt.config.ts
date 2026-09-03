@@ -19,6 +19,9 @@ const MANIFEST_KEY =
 
 export default defineConfig({
   srcDir: 'src/extension',
+  // Stated rather than left to the default, which resolves against the repo
+  // root and would leave `_locales` out of the build.
+  publicDir: 'src/extension/public',
   modules: ['@wxt-dev/module-react'],
 
   // Auto-imports are off: every symbol is imported by name, so the layering
