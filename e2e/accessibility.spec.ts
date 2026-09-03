@@ -6,7 +6,7 @@ import { expect, test } from './fixtures/extension'
 
 /** Typed just enough for the snippets that run inside the service worker. */
 declare const chrome: {
-  storage: { local: { remove: (keys: string) => Promise<void> } }
+  storage: { local: { remove: (keys: string | string[]) => Promise<void> } }
   runtime: { reload: () => void }
 }
 
@@ -24,9 +24,9 @@ test.describe('accessibility', () => {
       serviceWorker,
       dashboardUrl,
     }) => {
-      // The fixture signs the browser in; onboarding is the state before that.
+      // The fixture pairs the browser; onboarding is the state before that.
       await serviceWorker.evaluate(() =>
-        chrome.storage.local.remove('workerUrl'),
+        chrome.storage.local.remove(['workerUrl', 'pairingSecret']),
       )
 
       const page = await context.newPage()
