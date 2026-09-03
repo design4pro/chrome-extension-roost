@@ -34,3 +34,4 @@ playwright/.cache
 # Editor and OS noise
 .DS_Store
 *.log
+.worker-build

@@ -13,7 +13,8 @@
   "scripts": {
     "dev": "wxt",
     "dev:worker": "wrangler dev --port 3011",
-    "build": "wxt build",
+    "build": "wrangler deploy --dry-run --outdir .worker-build",
+    "build:extension": "wxt build",
     "zip": "wxt zip",
     "typecheck": "tsc --noEmit",
     "lint": "eslint",
@@ -26,10 +27,9 @@
     "e2e:update": "playwright test --update-snapshots",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
-    "setup:cloud": "tsx scripts/setup-cloud.ts",
     "verify:cloud": "tsx scripts/verify-cloud.ts",
-    "postinstall": "wxt prepare",
-    "prepare": "husky"
+    "postinstall": "wxt prepare || true",
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "*": "prettier --ignore-unknown --write"
@@ -72,5 +72,12 @@
     "wrangler": "^4.128.0",
     "ws": "^8.21.3",
     "wxt": "^0.21.4"
+  },
+  "cloudflare": {
+    "bindings": {
+      "PAIRING_SECRET": {
+        "description": "The key your browsers present to this hub. Paste the one Roost generated on its first-run screen. Anyone holding it can read and change every tab and bookmark you sync."
+      }
+    }
   }
 }

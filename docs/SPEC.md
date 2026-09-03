@@ -62,14 +62,18 @@ matter, asserted in `apply.test.ts`:
 
 ## Deploying
 
-The hub runs on the user's own Cloudflare account: `pnpm setup:cloud` deploys the
-Worker, attaches the custom domain, and creates the Access application that
-guards it. The two steps no API can do - creating the Zero Trust team and making
-the API token - are the first two in [DEPLOY.md](DEPLOY.md).
+The hub runs on the user's own Cloudflare account, put there by the Deploy to
+Cloudflare button in the README: it forks the repo, provisions the Durable
+Object and asks for `PAIRING_SECRET` while it deploys. No API token, no domain
+and no CLI. [DEPLOY.md](DEPLOY.md) is the whole procedure.
 
-Access sessions last 30 days and are per browser profile, so Chrome and Canary
-sign in separately. That is the design, not a defect: the cookie jar is what
-proves the request belongs to the account.
+That key is the only thing guarding the hub. Every route - the WebSocket upgrade
+included - answers 401 without it, and the check happens before the request can
+reach the Durable Object. It rides in `Authorization` for REST and as the second
+`Sec-WebSocket-Protocol` entry for the socket, never in the URL, because
+invocation logs record URLs and not headers. The cost is stated plainly in the
+README: whoever holds the key holds every tab and bookmark, and rotating it means
+changing the secret and pairing both browsers again.
 
 ## Accessibility
 
@@ -85,8 +89,6 @@ The suite cannot cover these; they belong to a release.
 
 - [ ] Chrome and Canary side by side, one window with 200+ tabs
 - [ ] a branded Chrome build (not Chromium) loads the unpacked build
-- [ ] third-party cookies blocked: the socket still connects, or the REST
-      fallback carries the token
 - [ ] Memory Saver discards a tab and no ghost row appears
 - [ ] the dashboard next to `chrome://bookmarks` and Tab Search, light and dark
 - [ ] Google Sync running on both profiles: copying a folder across produces no
@@ -101,10 +103,6 @@ The suite cannot cover these; they belong to a release.
 then `pnpm zip` for the packaged build. Coverage runs on Istanbul rather than
 V8, because the Workers pool runs inside workerd, which has no V8 profiler.
 
-Before any of that, `docs/adr/0001-poc-access-ws.md` has to exist and record a
-pass for the two questions the design rests on: that the Access cookie is
-attached to the WebSocket upgrade, and that a host permission granted at
-runtime is enough for it. `docs/POC.md` is how those are answered, and
-`pnpm verify:cloud` answers the three that a machine can. A failure on the
-second question removes `pnpm zip` from this list: every user would then need
-their own build with their own hostname compiled into the manifest.
+Before any of that, `docs/adr/0001-why-not-cloudflare-access.md` has to record a
+real deploy through the button, and `pnpm verify:cloud` has to confirm that the
+live hub refuses both a missing key and a wrong one.
