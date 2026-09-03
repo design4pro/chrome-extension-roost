@@ -3,23 +3,32 @@ import { browser } from 'wxt/browser'
 import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { decodeClientFrame, encode } from '#/shared/protocol/codec'
 import type { ClientFrame, ServerFrame } from '#/shared/protocol/messages'
+import { WS_SUBPROTOCOL } from '#/shared/protocol/ws'
 import type { Background } from './index'
 import { startBackground } from './index'
 import type { SocketHandlers } from './ws/client'
 
 const WORKER = 'https://sync.test'
+const SECRET = 'pairing-key-under-test'
 
 /** A socket the test drives from the hub's side. */
 const fakeSocket = () => {
   const sent: ClientFrame[] = []
   let handlers: SocketHandlers | undefined
   let url = ''
+  let protocols: string[] = []
 
   return {
     sent,
     url: () => url,
-    openSocket: (socketUrl: string, socketHandlers: SocketHandlers) => {
+    protocols: () => protocols,
+    openSocket: (
+      socketUrl: string,
+      socketProtocols: string[],
+      socketHandlers: SocketHandlers,
+    ) => {
       url = socketUrl
+      protocols = socketProtocols
       handlers = socketHandlers
       queueMicrotask(() => socketHandlers.onOpen())
       return {
@@ -66,7 +75,10 @@ beforeEach(async () => {
   } as never)
   vi.spyOn(browser.cookies, 'get').mockResolvedValue(null as never)
   vi.spyOn(browser.action, 'setBadgeText').mockResolvedValue(undefined)
-  await fakeBrowser.storage.local.set({ workerUrl: WORKER })
+  await fakeBrowser.storage.local.set({
+    workerUrl: WORKER,
+    pairingSecret: SECRET,
+  })
 })
 
 describe('the background worker end to end', () => {
@@ -94,6 +106,22 @@ describe('the background worker end to end', () => {
       type: 'hello',
       deviceId: background.deviceId,
     })
+  })
+
+  it('carries the pairing key in the subprotocol list, never in the URL', async () => {
+    await start()
+
+    expect(socket.protocols()).toEqual([WS_SUBPROTOCOL, SECRET])
+    // The Worker's invocation logs record the URL of every request, so a key
+    // that leaks into it is a key published to whoever can read them.
+    expect(socket.url()).not.toContain(SECRET)
+  })
+
+  it('still offers the protocol when this browser has no key yet', async () => {
+    await fakeBrowser.storage.local.remove('pairingSecret')
+    await start()
+
+    expect(socket.protocols()).toEqual([WS_SUBPROTOCOL])
   })
 
   it('tells the hub about a tab the user opened', async () => {

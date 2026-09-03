@@ -79,6 +79,7 @@ export async function startBackground(
     random: deps.random,
     workerUrl,
     deviceId,
+    secret: () => local.get<string>('pairingSecret'),
     hello: () => hello(deviceId, local, mirror, deps),
     snapshotAll: () => snapshotAll(deps, ids, deviceId),
     onCommands: (items) => void router.onIncoming(items),

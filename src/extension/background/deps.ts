@@ -19,3 +19,12 @@ export interface Store {
   set: (key: string, value: unknown) => Promise<void>
   remove: (key: string) => Promise<void>
 }
+
+/**
+ * The pairing key this browser was given, read fresh on every use.
+ *
+ * A getter rather than a string: re-pairing writes a new key to storage
+ * without restarting the service worker, so a value captured at wiring time
+ * would be the old one on the next connection attempt.
+ */
+export type Secret = () => Promise<string | undefined>

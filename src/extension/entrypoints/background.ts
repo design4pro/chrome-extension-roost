@@ -13,8 +13,12 @@ export default defineBackground(() => {
     clock: () => Date.now(),
     uuid: () => crypto.randomUUID(),
     random: () => Math.random(),
-    openSocket: (url: string, handlers: SocketHandlers) => {
-      const socket = new WebSocket(url)
+    openSocket: (
+      url: string,
+      protocols: string[],
+      handlers: SocketHandlers,
+    ) => {
+      const socket = new WebSocket(url, protocols)
       socket.addEventListener('open', () => handlers.onOpen())
       socket.addEventListener('message', (event: MessageEvent<string>) =>
         handlers.onMessage(event.data),

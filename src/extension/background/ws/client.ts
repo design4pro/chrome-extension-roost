@@ -2,7 +2,8 @@ import type { browser as Chrome } from 'wxt/browser'
 import { decodeServerFrame, encode } from '#/shared/protocol/codec'
 import type { ClientFrame, Commands, Hello } from '#/shared/protocol/messages'
 import type { Op } from '#/shared/protocol/ops'
-import type { Clock, Random, Store } from '../deps'
+import { WS_SUBPROTOCOL } from '#/shared/protocol/ws'
+import type { Clock, Random, Secret, Store } from '../deps'
 import { probeAuth } from '../auth/fetch'
 import type { MirrorStore } from '../mirror/store'
 import {
@@ -42,7 +43,11 @@ export interface Socket {
   close: () => void
 }
 
-export type OpenSocket = (url: string, handlers: SocketHandlers) => Socket
+export type OpenSocket = (
+  url: string,
+  protocols: string[],
+  handlers: SocketHandlers,
+) => Socket
 
 export interface ClientDeps {
   browser: typeof Chrome
@@ -53,6 +58,8 @@ export interface ClientDeps {
   random: Random
   workerUrl: string
   deviceId: string
+  /** Read per connection, so re-pairing takes effect without a restart. */
+  secret: Secret
   /** Built fresh for every connection: it carries the queue's position. */
   hello: () => Promise<Hello>
   /** Everything this device has open, for when the backlog outgrows itself. */
@@ -108,7 +115,7 @@ export function createClient(deps: ClientDeps): Client {
         return
 
       case 'probe_auth': {
-        const result = await probeAuth(deps.workerUrl)
+        const result = await probeAuth(deps.workerUrl, await deps.secret())
         return dispatch({
           type: 'probe_result',
           result: result === 'ok' ? 'ok' : result,
@@ -138,13 +145,19 @@ export function createClient(deps: ClientDeps): Client {
     }
   }
 
-  const open = () => {
+  const open = async () => {
     socket?.close()
     const url = new URL('/ws', deps.workerUrl)
     url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:'
     url.searchParams.set('device', deps.deviceId)
 
-    socket = deps.openSocket(url.toString(), {
+    // The key goes in the subprotocol list and never in the URL - a browser
+    // WebSocket has no other place to put it, and the URL is logged.
+    const secret = await deps.secret()
+    const protocols =
+      secret === undefined ? [WS_SUBPROTOCOL] : [WS_SUBPROTOCOL, secret]
+
+    socket = deps.openSocket(url.toString(), protocols, {
       onOpen: () => void dispatch({ type: 'socket_open' }),
       onMessage: (data) => void receive(data),
       onClose: (code) => {
