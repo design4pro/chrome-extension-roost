@@ -96,11 +96,35 @@
   "onboarding_step_connect": {
     "message": "2. Connect this browser"
   },
+  "onboarding_found": {
+    "message": "A Worker is open in another tab. If this is the hub you just deployed, connect to it:"
+  },
   "onboarding_url_label": {
     "message": "Worker address"
   },
+  "onboarding_url_warning": {
+    "message": "What changes if this address changes"
+  },
+  "onboarding_url_warning_data": {
+    "message": "The old hub stays on your account and keeps every tab and bookmark it holds. A new address is a new, empty hub; nothing is moved across."
+  },
+  "onboarding_url_warning_devices": {
+    "message": "Your other browsers still point at the old address, so they stop seeing this one until each is paired again."
+  },
+  "onboarding_url_warning_permission": {
+    "message": "The permission you granted for the old address stays granted, and the new one has to be granted separately."
+  },
+  "onboarding_url_warning_rename": {
+    "message": "Renaming the Worker on the Cloudflare deploy screen does all of this too, because the name is what the address is made of."
+  },
   "onboarding_name_label": {
     "message": "Name for this browser"
+  },
+  "onboarding_sync_label": {
+    "message": "Use this hub in my other Chrome browsers"
+  },
+  "onboarding_sync_note": {
+    "message": "Chrome carries the address and the key to browsers signed in to the same Google account, so they pair without typing. The key travels through that account."
   },
   "onboarding_connect": {
     "message": "Connect"

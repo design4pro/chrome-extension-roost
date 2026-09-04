@@ -38,6 +38,9 @@ possible, and it is weaker than an identity provider in front of the door.
 - Anyone who holds the key can read and change every tab and bookmark you sync.
 - There is no expiry and no revocation list. If the key leaks, change
   `PAIRING_SECRET` in the Cloudflare dashboard and pair both browsers again.
+- The key stays in the browsers you put it in, unless you tick the box that
+  carries it to your other Chrome browsers. That box is off by default, and
+  ticking it means the key travels through your Google account.
 
 ## Working on it
 
