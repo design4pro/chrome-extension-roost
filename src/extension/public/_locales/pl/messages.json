@@ -22,6 +22,10 @@
   "devices_heading": {
     "message": "Urządzenia"
   },
+  "sidebar_resize": {
+    "message": "Zmień szerokość panelu bocznego",
+    "description": "Accessible name of the draggable divider between the sidebar and the list."
+  },
   "windows_heading": {
     "message": "Okna"
   },
@@ -157,6 +161,26 @@
   },
   "menu_close_window": {
     "message": "Zamknij okno"
+  },
+  "window_closed": {
+    "message": "Zamknięte $date$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "tab_closed": {
+    "message": "Zamknięte"
+  },
+  "menu_forget_window": {
+    "message": "Usuń z historii"
+  },
+  "action_pending": {
+    "message": "Trwa…"
+  },
+  "command_no_answer": {
+    "message": "Ta przeglądarka nie odpowiedziała."
   },
   "menu_restore_window": {
     "message": "Odtwórz okno tutaj"

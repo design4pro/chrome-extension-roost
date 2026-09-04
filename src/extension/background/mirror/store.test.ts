@@ -37,6 +37,20 @@ const tab = (id: string): Op => ({
   },
 })
 
+const device = (id: string): Op => ({
+  op: 'upsert',
+  entity: 'device',
+  id,
+  data: {
+    name: id,
+    os: 'test',
+    browserVersion: 'test',
+    extensionVersion: '0.1.0',
+    online: true,
+    lastSeen: 1,
+  },
+})
+
 describe('the local mirror', () => {
   it('starts empty', async () => {
     const { store } = memoryStore()
@@ -69,6 +83,26 @@ describe('the local mirror', () => {
     await mirror.apply([tab('t1')], 4)
 
     expect((await mirror.apply([tab('t2')])).lastSeq).toBe(4)
+  })
+
+  it('loses nothing when two frames arrive in the same tick', async () => {
+    // Frames are handled as they land, without waiting for the one before, and
+    // on connect they land in a burst: what the hub had missed, then the row it
+    // broadcasts for the device that just said hello. Both read the mirror
+    // before either has written it, so without a queue the second write is the
+    // whole state and the first frame's ops are gone.
+    const { store } = memoryStore()
+    const mirror = createMirrorStore(store)
+
+    await Promise.all([
+      mirror.apply([tab('t1')], 1),
+      mirror.apply([device('d1')], 2),
+    ])
+
+    const reopened = await createMirrorStore(store).read()
+    expect(Object.keys(reopened.mirror.tabs)).toEqual(['t1'])
+    expect(Object.keys(reopened.mirror.devices)).toEqual(['d1'])
+    expect(reopened.lastSeq).toBe(2)
   })
 
   it('forgets everything when told to start over', async () => {

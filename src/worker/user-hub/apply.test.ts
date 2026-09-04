@@ -68,6 +68,7 @@ const windowData = (
   bounds: null,
   focused: true,
   tabOrder,
+  closedAt: null,
   ...over,
 })
 

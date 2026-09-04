@@ -61,13 +61,17 @@ describe('Onboarding', () => {
     expect(link).toHaveAttribute('href', DEPLOY_URL)
   })
 
-  it('keeps the same key across a reload of the page', async () => {
+  it('keeps the same key across a restart of the browser', async () => {
     const first = render(<Onboarding onDone={() => undefined} />)
     const minted = await mintedKey()
     first.unmount()
 
-    // Cloudflare already has this key by now; generating another one here
-    // would pair the browser with a hub that has never heard of it.
+    // Deploying happens on Cloudflare's site and takes minutes, so the browser
+    // can well be restarted in between - which is what empties session storage.
+    // Cloudflare already has this key by now; generating another one here would
+    // pair the browser with a hub that has never heard of it.
+    await fakeBrowser.storage.session.clear()
+
     render(<Onboarding onDone={() => undefined} />)
     expect(await mintedKey()).toBe(minted)
   })

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { MenuKey } from '../a11y/menu'
 import { reduceMenu } from '../a11y/menu'
+import { placeMenu } from '../state/place'
 
 /**
  * The row menu: right click, the kebab button, or Shift+F10.
@@ -13,6 +14,11 @@ import { reduceMenu } from '../a11y/menu'
 export interface MenuItem {
   label: string
   onSelect: () => void
+  /**
+   * Asked for, not yet answered. Only the panel header shows this: a row menu
+   * closes on the way out, so there is nothing left to put it on.
+   */
+  pending?: boolean
 }
 
 const KEYS: readonly string[] = [
@@ -35,7 +41,25 @@ export function ContextMenu({
   onClose: () => void
 }) {
   const [index, setIndex] = useState(0)
+  const [placed, setPlaced] = useState<{ left: number; top: number } | null>(
+    null,
+  )
   const list = useRef<HTMLDivElement>(null)
+
+  // Measured before the browser paints, so the menu is never seen at the point
+  // it was asked for and then again where it fits. How big it is depends on
+  // the longest label, which is why this cannot be worked out in advance.
+  useLayoutEffect(() => {
+    const box = list.current?.getBoundingClientRect()
+    if (box === undefined) return
+    setPlaced(
+      placeMenu(
+        at,
+        { width: box.width, height: box.height },
+        { width: window.innerWidth, height: window.innerHeight },
+      ),
+    )
+  }, [at.x, at.y, items.length])
 
   useEffect(() => {
     list.current
@@ -69,7 +93,7 @@ export function ContextMenu({
       ref={list}
       role="menu"
       className="fixed z-20 min-w-40 rounded-menu bg-menu py-1 shadow-elevation-2"
-      style={{ left: at.x, top: at.y }}
+      style={{ left: placed?.left ?? at.x, top: placed?.top ?? at.y }}
       onKeyDown={onKeyDown}
       onPointerDown={(event) => event.stopPropagation()}
     >

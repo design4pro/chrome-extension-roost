@@ -46,6 +46,7 @@ const windowData = (
   bounds: { left: 0, top: 0, width: 1200, height: 800 },
   focused: true,
   tabOrder,
+  closedAt: null,
   ...over,
 })
 

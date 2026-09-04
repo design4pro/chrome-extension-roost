@@ -18,7 +18,15 @@ import { t } from '../i18n'
  * theirs is a network call, and the call needs the permission first.
  */
 
-/** Kept across a reload, so the key on screen stays the one already deployed. */
+/**
+ * The key on screen, kept until it is paired.
+ *
+ * In `local` rather than `session` on purpose: deploying takes minutes on
+ * Cloudflare's site, and anything that ends the extension's session in the
+ * meantime - a browser restart, a reload of an unpacked build - would empty
+ * `session` and mint a second key. The user would then be holding a key the
+ * hub has never heard of, and the only symptom is the hub refusing it.
+ */
 const DRAFT_KEY = 'pairingDraft'
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
@@ -58,12 +66,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       // The hub already knows the synced key, and a freshly minted one would
       // not be the key the user pasted into Cloudflare either, so the first
       // key wins and is written down.
-      const draft = await browser.storage.session.get(DRAFT_KEY)
+      const draft = await browser.storage.local.get(DRAFT_KEY)
       const existing = synced.pairingSecret ?? draft[DRAFT_KEY]
       if (typeof existing === 'string') return setSecret(existing)
 
       const minted = generateSecret()
-      await browser.storage.session.set({ [DRAFT_KEY]: minted })
+      await browser.storage.local.set({ [DRAFT_KEY]: minted })
       setSecret(minted)
     })()
   }, [])
@@ -142,7 +150,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       await browser.storage.sync.remove(['workerUrl', 'pairingSecret'])
     }
 
-    await browser.storage.session.remove(DRAFT_KEY)
+    await browser.storage.local.remove(DRAFT_KEY)
     onDone()
   }
 

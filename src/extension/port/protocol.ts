@@ -50,6 +50,9 @@ export const DashboardMessage = z.discriminatedUnion('type', [
     body: CommandBody,
   }),
   z.object({ type: z.literal('restore'), windowId: z.string() }),
+  // Only ever a closed window: the worker turns a delete of an open one back
+  // into a close, so this cannot be used to make a live window disappear.
+  z.object({ type: z.literal('forget'), windowId: z.string() }),
   // The dashboard names the folder; the worker turns it into the list of nodes
   // to recreate, because that reading of the mirror is not the page's job.
   z.object({ type: z.literal('copy'), bookmarkId: z.string() }),

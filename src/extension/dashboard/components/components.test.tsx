@@ -4,9 +4,10 @@ import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { Banner } from './Banner'
 import { RestoreDialog } from './RestoreDialog'
 import { Toolbar } from './Toolbar'
+import { MIN_WIDTH, Resizer } from './Resizer'
 import { Sidebar } from './Sidebar'
 import { TabList } from './TabList'
-import type { Row, TreeNode } from '../state/select'
+import type { Row, TreeNode, WindowNode } from '../state/select'
 
 /**
  * The components, in a DOM.
@@ -80,6 +81,7 @@ const nodes: TreeNode[] = [
     deviceId: 'd1',
     label: 'Docs',
     tabCount: 2,
+    closedAt: null,
     level: 2,
   },
   {
@@ -149,9 +151,35 @@ describe('Toolbar', () => {
   })
 })
 
+describe('Resizer', () => {
+  it('can be moved without a pointer at all', () => {
+    // WCAG 2.2 asks every dragging movement to have a single-pointer or
+    // keyboard alternative. This is that alternative, and it is the only part
+    // of the divider a test can exercise: jsdom has no pointer capture.
+    const onWidth = vi.fn()
+    render(<Resizer width={256} onWidth={onWidth} />)
+
+    const divider = screen.getByRole('separator')
+    expect(divider).toHaveAttribute('aria-valuenow', '256')
+    expect(divider).toHaveAttribute('aria-orientation', 'vertical')
+
+    fireEvent.keyDown(divider, { key: 'ArrowRight' })
+    expect(onWidth).toHaveBeenCalledWith(272)
+  })
+
+  it('refuses to go narrower than a device name', () => {
+    const onWidth = vi.fn()
+    render(<Resizer width={MIN_WIDTH} onWidth={onWidth} />)
+
+    fireEvent.keyDown(screen.getByRole('separator'), { key: 'ArrowLeft' })
+    expect(onWidth).toHaveBeenCalledWith(MIN_WIDTH)
+  })
+})
+
 describe('Sidebar', () => {
   const setup = (overrides: Partial<Parameters<typeof Sidebar>[0]> = {}) => {
     const props = {
+      width: 256,
       nodes,
       expanded: new Set(['d1']),
       selection: null,
@@ -172,6 +200,25 @@ describe('Sidebar', () => {
     expect(items[0]).toHaveAttribute('aria-expanded', 'true')
     expect(items[1]).toHaveAttribute('aria-level', '2')
     expect(items[2]).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('gives a closed window a date instead of a tab count', () => {
+    const closed = new Date('2026-03-14T10:00:00Z').getTime()
+    setup({
+      nodes: [
+        nodes[0]!,
+        { ...(nodes[1] as WindowNode), closedAt: closed },
+        nodes[2]!,
+      ],
+    })
+
+    const row = screen.getAllByRole('treeitem')[1]!
+    // The count is what it says while the window exists, and saying both in a
+    // 256px panel is what the width of a machine name does not allow.
+    expect(row).not.toHaveTextContent('2')
+    // Shown as a bare date, read out as a sentence: `window_closed` is the key
+    // the stub echoes, and the date is its substitution.
+    expect(row).toHaveTextContent('window_closed')
   })
 
   it('keeps a single tab stop and moves with the arrows', () => {
@@ -210,14 +257,14 @@ describe('TabList', () => {
       />,
     )
 
-    const list = screen.getByRole('listbox', { name: 'Windows' })
+    const list = screen.getByRole('list', { name: 'Windows' })
     expect(within(list).getByText('First')).toBeDefined()
     expect(screen.getByTestId('panel-header')).toHaveTextContent('Windows')
   })
 
   it('keeps a focused row clear of the header', () => {
     render(<TabList rows={[tab('t1', 'First')]} title="Windows" />)
-    const row = screen.getAllByRole('option')[0] as HTMLElement
+    const row = screen.getAllByRole('listitem')[0] as HTMLElement
     expect(row.style.scrollMarginTop).toBe('48px')
   })
 
@@ -283,6 +330,34 @@ describe('TabList menus', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
+  it('switches to the tab when the row itself is clicked', () => {
+    const onOpen = vi.fn()
+    render(
+      <TabList
+        rows={[tab('t1', 'First')]}
+        title="Windows"
+        actions={() => [{ label: 'menu_activate_tab', onSelect: vi.fn() }]}
+        onOpen={onOpen}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /First/ }))
+    expect(onOpen).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'tab', id: 't1' }),
+    )
+  })
+
+  it('marks a row nothing can be done to as disabled', () => {
+    // No actions means the window this tab was in is gone, so neither the menu
+    // nor the click has anything to ask for.
+    render(<TabList rows={[tab('t1', 'First')]} title="Windows" />)
+
+    expect(screen.getByRole('button', { name: /First/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+  })
+
   it('shows the actions the whole window has', () => {
     const onSelect = vi.fn()
     render(
@@ -295,6 +370,26 @@ describe('TabList menus', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'menu_restore_window' }))
     expect(onSelect).toHaveBeenCalledOnce()
+  })
+
+  it('says an action is still on its way, and refuses to send it twice', () => {
+    const onSelect = vi.fn()
+    render(
+      <TabList
+        rows={[tab('t1', 'First')]}
+        title="Windows"
+        headerActions={[
+          { label: 'menu_close_window', pending: true, onSelect },
+        ]}
+      />,
+    )
+
+    const button = screen.getByRole('button', { name: 'action_pending' })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
+
+    fireEvent.click(button)
+    expect(onSelect).not.toHaveBeenCalled()
   })
 })
 

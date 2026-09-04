@@ -22,6 +22,10 @@
   "devices_heading": {
     "message": "Devices"
   },
+  "sidebar_resize": {
+    "message": "Resize the sidebar",
+    "description": "Accessible name of the draggable divider between the sidebar and the list."
+  },
   "windows_heading": {
     "message": "Windows"
   },
@@ -157,6 +161,26 @@
   },
   "menu_close_window": {
     "message": "Close window"
+  },
+  "window_closed": {
+    "message": "Closed $date$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "tab_closed": {
+    "message": "Closed"
+  },
+  "menu_forget_window": {
+    "message": "Remove from history"
+  },
+  "action_pending": {
+    "message": "Working…"
+  },
+  "command_no_answer": {
+    "message": "That browser has not answered."
   },
   "menu_restore_window": {
     "message": "Restore window here"

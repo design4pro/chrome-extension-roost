@@ -48,7 +48,15 @@ if (root !== null) {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') void load()
 })
-if (document.visibilityState === 'visible') void load()
+
+// The first look is asked of Chrome rather than of the document: a window is
+// restored with its front tab already on a real address, so a placeholder that
+// starts out in front is the rarer case of a browser restart - and the
+// document's own visibility is emulated as visible for every page under
+// automation, which would have all 250 placeholders navigate at once.
+void browser.tabs.getCurrent().then((tab) => {
+  if (tab?.active === true) void load()
+})
 
 async function load(): Promise<void> {
   if (url === '') return

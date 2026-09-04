@@ -5,7 +5,6 @@ import { expect, test } from './fixtures/extension'
 
 /** Typed just enough for the snippets that run inside the service worker. */
 declare const chrome: {
-  runtime: { reload: () => void }
   tabs: { query: (info: object) => Promise<Array<{ url?: string }>> }
   windows: { getAll: () => Promise<Array<{ id?: number }>> }
 }
@@ -24,7 +23,6 @@ test.describe('restoring a window from another device', () => {
     dashboardUrl,
   }) => {
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedWindow(other, { tabs: 30 })
 
     const page = await context.newPage()
@@ -63,7 +61,6 @@ test.describe('restoring a window from another device', () => {
   }) => {
     test.slow()
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedWindow(other, { tabs: 250 })
 
     const page = await context.newPage()

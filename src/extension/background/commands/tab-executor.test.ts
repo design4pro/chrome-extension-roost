@@ -8,6 +8,7 @@ const ids = (table: Record<string, number>): IdMap => ({
   uuidFor: () => Promise.resolve(''),
   peek: () => Promise.resolve(undefined),
   chromeIdFor: (_kind, uuid) => Promise.resolve(table[uuid]),
+  adopt: () => Promise.resolve(),
   remap: () => Promise.resolve(),
   forget: () => Promise.resolve(),
 })

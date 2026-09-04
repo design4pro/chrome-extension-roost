@@ -14,6 +14,7 @@ const windowData = (tabOrder: string[]): WindowData => ({
   bounds: null,
   focused: true,
   tabOrder,
+  closedAt: null,
 })
 
 const tabData = (id: string, title: string): TabData => ({

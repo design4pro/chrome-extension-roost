@@ -43,22 +43,33 @@ export function createMirrorStore(store: Store): MirrorStore {
   return {
     read,
 
-    async apply(ops, seqTo) {
-      const previous = await read()
-      const next: MirrorSnapshot = {
-        mirror: applyOps(previous.mirror, ops),
-        lastSeq: seqTo ?? previous.lastSeq,
-      }
-      current = Promise.resolve(next)
+    apply(ops, seqTo) {
+      // Chained rather than read-then-written: frames are handled as they land
+      // and on connect they land in a burst, so two calls would otherwise read
+      // the same mirror and the later write would be the whole state - the
+      // earlier frame's ops gone, and no event to bring them back.
+      const pending = read()
+      const step = pending.then(async (previous) => {
+        const next: MirrorSnapshot = {
+          mirror: applyOps(previous.mirror, ops),
+          lastSeq: seqTo ?? previous.lastSeq,
+        }
 
-      await store.set(MIRROR_KEY, next.mirror)
-      if (next.lastSeq !== previous.lastSeq) {
-        // Written after the mirror, never before: a service worker killed
-        // between the two writes must under-report progress, so the hub resends
-        // what was already applied rather than skipping what was not.
-        await store.set(SEQ_KEY, next.lastSeq)
-      }
-      return next
+        await store.set(MIRROR_KEY, next.mirror)
+        if (next.lastSeq !== previous.lastSeq) {
+          // Written after the mirror, never before: a service worker killed
+          // between the two writes must under-report progress, so the hub
+          // resends what was already applied rather than skipping what was not.
+          await store.set(SEQ_KEY, next.lastSeq)
+        }
+        return next
+      })
+
+      // A write that failed must not take the queue with it: the next frame is
+      // applied to the last state that did land, and it is this caller that
+      // hears about the failure.
+      current = step.catch(() => pending)
+      return step
     },
 
     async reset() {

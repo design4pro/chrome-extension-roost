@@ -53,6 +53,17 @@ export const WindowData = z.looseObject({
    * column per tab. Reordering a 200-tab window is then one written row.
    */
   tabOrder: z.array(z.string()),
+  /**
+   * When this window stopped existing, or null while it still does.
+   *
+   * Read it as "when we noticed it was gone" rather than as the moment the
+   * user closed it: a window that goes away while the browser is shut is only
+   * missed at the next start, and nobody wrote down the real time.
+   *
+   * Defaulted rather than required, so rows written before there was any such
+   * thing as a closed window keep parsing - as open, which is what they were.
+   */
+  closedAt: z.number().nullable().default(null),
 })
 export type WindowData = z.infer<typeof WindowData>
 

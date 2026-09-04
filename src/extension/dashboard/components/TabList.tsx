@@ -24,12 +24,15 @@ export function TabList({
   rows,
   title,
   actions,
+  onOpen,
   headerActions = [],
 }: {
   rows: Row[]
   title: string
   /** What this row can be asked to do; empty means no menu at all. */
   actions?: (row: ItemRow) => MenuItem[]
+  /** The click on the row itself: switching to the tab it stands for. */
+  onOpen?: (row: ItemRow) => void
   headerActions?: MenuItem[]
 }) {
   const viewport = useRef<HTMLDivElement>(null)
@@ -75,9 +78,14 @@ export function TabList({
               key={action.label}
               type="button"
               onClick={action.onSelect}
-              className="h-9 rounded-pill border border-outline bg-transparent px-4 text-[13px] font-normal text-on-surface"
+              // Disabled rather than merely relabelled: the command is already
+              // on its way to another browser and asking twice would close a
+              // window that the first one is about to close anyway.
+              disabled={action.pending === true}
+              aria-busy={action.pending === true}
+              className="h-9 rounded-pill border border-outline bg-transparent px-4 text-[13px] font-normal text-on-surface disabled:text-on-surface-variant"
             >
-              {action.label}
+              {action.pending === true ? t('action_pending') : action.label}
             </button>
           ))}
         </span>
@@ -87,7 +95,6 @@ export function TabList({
         <p className="px-6 py-4 text-on-surface-variant">{t('no_results')}</p>
       ) : (
         <ul
-          role="listbox"
           aria-label={title}
           className="relative m-0 list-none p-0"
           style={{ height: virtualizer.getTotalSize() }}
@@ -99,8 +106,6 @@ export function TabList({
             return (
               <li
                 key={row.kind === 'group' ? `group:${row.id}` : row.id}
-                role="option"
-                aria-selected={false}
                 className="absolute inset-x-0 top-0"
                 style={{
                   height: item.size,
@@ -121,6 +126,11 @@ export function TabList({
                   <div className="group flex h-full items-center pe-4">
                     <button
                       type="button"
+                      // A row with nothing that can be done to it is a row in a
+                      // window that is no longer there. Saying so is the whole
+                      // difference between a dead control and a broken one.
+                      aria-disabled={(actions?.(row) ?? []).length === 0}
+                      onClick={() => onOpen?.(row)}
                       onContextMenu={(event) => {
                         event.preventDefault()
                         openMenu(row, event.currentTarget, {
@@ -137,7 +147,7 @@ export function TabList({
                           y: box.bottom,
                         })
                       }}
-                      className="flex h-full w-full items-center gap-3 border-0 bg-transparent px-6 text-left hover:bg-hover"
+                      className="flex h-full w-full items-center gap-3 border-0 bg-transparent px-6 text-left hover:bg-hover aria-disabled:text-on-surface-variant"
                       style={{ scrollMarginTop: `${HEADER_HEIGHT}px` }}
                     >
                       <Favicon url={row.data.url ?? ''} />
@@ -146,7 +156,16 @@ export function TabList({
                           {row.data.title}
                         </span>
                         <span className="block truncate text-[12px] text-on-surface-variant">
-                          {[row.context?.deviceLabel, hostOf(row.data.url)]
+                          {[
+                            row.context?.deviceLabel,
+                            // Only search puts closed tabs next to live ones,
+                            // and only there does a result need to admit that
+                            // clicking it will not take you anywhere.
+                            row.kind === 'tab' && row.context?.closed === true
+                              ? t('tab_closed')
+                              : undefined,
+                            hostOf(row.data.url),
+                          ]
                             .filter((part) => part !== undefined && part !== '')
                             .join(' · ')}
                         </span>
