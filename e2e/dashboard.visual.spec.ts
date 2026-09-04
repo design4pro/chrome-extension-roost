@@ -8,6 +8,13 @@ import { expect, test } from './fixtures/extension'
  * own cache and differ between machines.
  */
 test.describe('the dashboard, visually', () => {
+  // Baselines are per platform (`snapshotPathTemplate` has `{platform}`) and
+  // the reviewed set is the macOS one, because that is where a human looks at
+  // the diff and says whether the new pixels are the intended ones. Linux
+  // renders the same page with different fonts, so CI would need a second set
+  // that nobody reviews - a baseline no one reads is not a regression test.
+  test.skip(!!process.env.CI, 'baselines are reviewed on macOS')
+
   for (const scheme of ['light', 'dark'] as const) {
     test(`a window of tabs in ${scheme}`, async ({ context, dashboardUrl }) => {
       const other = await connectSecondDevice()

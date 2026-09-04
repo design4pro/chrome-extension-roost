@@ -66,15 +66,19 @@ test.describe('bookmarks', () => {
     // And the capture events that copy produced are what put it in the mirror,
     // under this browser rather than under the one it came from.
     await page.reload()
-    // Taken by position rather than by name: this browser's own roots come
-    // from Chrome, which titles them in the language the machine is set to,
-    // while every other name in this suite is the extension's English. This
-    // browser is the first device in the tree, so its bar is the row below it.
+    // Found by shape rather than by name: this browser's own roots come from
+    // Chrome, which titles them in the language the machine is set to, while
+    // every other name in this suite is the extension's English. Only this
+    // device is expanded after the reload, and of its rows only a folder with
+    // something under it carries `aria-expanded` - its windows never do and
+    // its empty roots do not either. So the first such row is the bar that
+    // just received the copy, and waiting for it to exist is waiting for the
+    // copy to reach the mirror; pressing earlier opens an empty folder and
+    // stays there.
     await page.getByRole('treeitem', { name: /This browser/ }).click()
-    const bar = page.getByRole('treeitem').nth(1)
-    // Waited for rather than assumed: `aria-expanded` appears only once a row
-    // has something under it, so this is the moment the copy reached the
-    // mirror - pressing before it would open an empty folder and stay there.
+    const bar = page
+      .locator('[role="treeitem"][aria-level="2"][aria-expanded]')
+      .first()
     await expect(bar).toHaveAttribute('aria-expanded', 'false')
     await bar.press('ArrowRight')
 
