@@ -83,9 +83,13 @@ test.describe('bookmarks', () => {
     await bar.press('ArrowRight')
 
     // The copy is the whole subtree, so the other browser's bar arrives as a
-    // folder inside this one's rather than being merged into it - and it keeps
-    // the name it had there, which is why this one can be asked for by name.
-    const copied = page.getByRole('treeitem', { name: /Bookmarks bar/ })
+    // folder inside this one's rather than being merged into it. Asking for it
+    // by name would be ambiguous on an English machine, where this browser's
+    // own bar is called the same thing - so again by shape: one level deeper
+    // than that bar, and holding a folder of its own.
+    const copied = page
+      .locator('[role="treeitem"][aria-level="3"][aria-expanded]')
+      .first()
     await expect(copied).toHaveAttribute('aria-expanded', 'false')
     await copied.press('ArrowRight')
     await expect(
