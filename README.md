@@ -17,7 +17,7 @@ and no account to create anywhere but Cloudflare.
 
 ## Getting started
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/rafalwolak/roost)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/design4pro/chrome-extension-roost)
 
 The extension's first screen generates a pairing key and links to that button.
 Cloudflare asks for the key as `PAIRING_SECRET` while it deploys, and hands back

@@ -5,7 +5,7 @@
  * same address the README's deploy button points at, and the two must not
  * drift - a `scripts/deploy-button.test.ts` asserts they agree.
  */
-export const REPO_URL = 'https://github.com/rafalwolak/roost'
+export const REPO_URL = 'https://github.com/design4pro/chrome-extension-roost'
 
 export const DEPLOY_URL = `https://deploy.workers.cloudflare.com/?url=${REPO_URL}`
 
