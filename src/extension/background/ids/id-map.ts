@@ -21,6 +21,13 @@ export interface IdMap {
   /** The id for this thing, or nothing if it has not been seen before. */
   peek: (kind: IdKind, chromeId: number) => Promise<string | undefined>
   chromeIdFor: (kind: IdKind, uuid: string) => Promise<number | undefined>
+  /**
+   * Give a number the id this thing already had.
+   *
+   * Used after a restart, where the thing is the same window but the number is
+   * not: minting would tell everyone it is new.
+   */
+  adopt: (kind: IdKind, chromeId: number, uuid: string) => Promise<void>
   /** Move an id to a new number, for a tab Chrome replaced under us. */
   remap: (kind: IdKind, from: number, to: number) => Promise<void>
   forget: (kind: IdKind, chromeId: number) => Promise<void>
@@ -62,6 +69,14 @@ export function createIdMap(store: Store, uuid: Uuid): IdMap {
       const entries = Object.entries((await table())[kind] ?? {})
       const found = entries.find(([, value]) => value === uuid_)
       return found ? Number(found[0]) : undefined
+    },
+
+    async adopt(kind, chromeId, uuid_) {
+      const current = await table()
+      await save({
+        ...current,
+        [kind]: { ...current[kind], [chromeId]: uuid_ },
+      })
     },
 
     async remap(kind, from, to) {

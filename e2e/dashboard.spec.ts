@@ -2,17 +2,12 @@ import { connectSecondDevice } from './helpers/second-device'
 import { seedWindow } from './helpers/seed'
 import { expect, test } from './fixtures/extension'
 
-/** Typed just enough for the snippets that run inside the service worker. */
-declare const chrome: { runtime: { reload: () => void } }
-
 test.describe('the dashboard', () => {
   test('shows what another device has open, and filters it', async ({
     context,
-    serviceWorker,
     dashboardUrl,
   }) => {
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedWindow(other, { tabs: 5 })
 
     const page = await context.newPage()
@@ -24,23 +19,24 @@ test.describe('the dashboard', () => {
     await device.click()
     await page.getByRole('treeitem', { name: /Second device page 0/ }).click()
 
-    await expect(page.getByRole('option')).toHaveCount(6) // five tabs, one group
-    await expect(page.getByText('Second device page 3')).toBeVisible()
+    // Scoped to the list: a window is named after the tab it is showing, so
+    // "page 0" is also the label of the sidebar item that opened this.
+    const list = page.getByRole('list')
+    await expect(list.getByRole('listitem')).toHaveCount(6) // five tabs, one group
+    await expect(list.getByText('Second device page 3')).toBeVisible()
 
     await page.getByLabel(/Search/).fill('page 3')
-    await expect(page.getByText('Second device page 3')).toBeVisible()
-    await expect(page.getByText('Second device page 0')).toHaveCount(0)
+    await expect(list.getByText('Second device page 3')).toBeVisible()
+    await expect(list.getByText('Second device page 0')).toHaveCount(0)
 
     other.close()
   })
 
   test('never parks a focused row under the sticky header', async ({
     context,
-    serviceWorker,
     dashboardUrl,
   }) => {
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedWindow(other, { tabs: 60 })
 
     const page = await context.newPage()
@@ -75,11 +71,9 @@ test.describe('the dashboard', () => {
 
   test('opens a row menu from the keyboard', async ({
     context,
-    serviceWorker,
     dashboardUrl,
   }) => {
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedWindow(other, { tabs: 5 })
 
     const page = await context.newPage()
@@ -87,7 +81,9 @@ test.describe('the dashboard', () => {
     await page.getByRole('treeitem', { name: /Second device/ }).click()
     await page.getByRole('treeitem', { name: /Second device page 0/ }).click()
 
-    await page.getByRole('button', { name: /Second device page 1/ }).focus()
+    // Anchored: the row's own button opens with the title, while the one
+    // beside it is "Actions for ...".
+    await page.getByRole('button', { name: /^Second device page 1/ }).focus()
     await page.keyboard.press('Shift+F10')
 
     const menu = page.getByRole('menu')
@@ -97,7 +93,7 @@ test.describe('the dashboard', () => {
     await page.keyboard.press('Escape')
     await expect(menu).toBeHidden()
     await expect(
-      page.getByRole('button', { name: /Second device page 1/ }),
+      page.getByRole('button', { name: /^Second device page 1/ }),
     ).toBeFocused()
 
     other.close()

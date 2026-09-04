@@ -78,6 +78,8 @@ export function windowData(
         : null,
     focused: window.focused,
     tabOrder,
+    // Chrome only ever hands us windows it still has.
+    closedAt: null,
   }
 }
 

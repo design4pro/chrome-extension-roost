@@ -15,10 +15,14 @@ export function Toolbar({
   const id = useId()
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 px-6">
+    // Three columns rather than a row, because Chrome's own `cr-toolbar` puts
+    // the field in the middle of the window and not in the middle of what is
+    // left over: the title grows to the left, the field stays centred, and the
+    // third column is empty on purpose - it is the counterweight.
+    <header className="grid h-14 shrink-0 grid-cols-[1fr_minmax(0,680px)_1fr] items-center gap-3 px-6">
       <h1 className="m-0 text-[14px] font-medium">{t('app_name')}</h1>
 
-      <div className="flex h-9 flex-1 items-center gap-2 rounded-pill bg-container px-4">
+      <div className="flex h-9 items-center gap-2 rounded-pill bg-container px-4">
         <Icon
           name="search"
           className="size-4 shrink-0 fill-on-surface-variant"

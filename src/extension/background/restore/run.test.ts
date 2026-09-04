@@ -46,6 +46,7 @@ const window: WindowData = {
   bounds: null,
   focused: false,
   tabOrder: [],
+  closedAt: null,
 }
 
 const plan = (count: number) =>

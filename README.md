@@ -15,6 +15,11 @@ and no account to create anywhere but Cloudflare.
 - **Yours** - your hub, on your account, reachable only with a key your browser
   generated and only you have.
 
+Chrome 134 or newer, and any Chrome-family browser that meets it: Chrome,
+Canary, Edge, Brave. Not yet on the Chrome Web Store - build it and load it
+unpacked, as under "Working on it" below, or see
+[docs/RELEASE.md](docs/RELEASE.md) for what submitting it involves.
+
 ## Getting started
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/design4pro/chrome-extension-roost)
@@ -38,12 +43,15 @@ possible, and it is weaker than an identity provider in front of the door.
 - Anyone who holds the key can read and change every tab and bookmark you sync.
 - There is no expiry and no revocation list. If the key leaks, change
   `PAIRING_SECRET` in the Cloudflare dashboard and pair both browsers again.
+- The key stays in the browsers you put it in, unless you tick the box that
+  carries it to your other Chrome browsers. That box is off by default, and
+  ticking it means the key travels through your Google account.
 
 ## Working on it
 
 ```bash
 pnpm install
-pnpm dev             # the extension, rebuilt on save (.output/chrome-mv3)
+pnpm dev             # the extension, rebuilt on save (build/chrome-mv3)
 pnpm dev:worker      # the Worker, on http://localhost:3011
 pnpm build           # what Cloudflare runs: a dry-run deploy of the Worker
 pnpm build:extension # the extension bundle
@@ -54,10 +62,17 @@ pnpm e2e             # Playwright, against a real Chromium with the extension lo
 Copy `.dev.vars.example` to `.dev.vars` before `pnpm dev:worker` or `pnpm e2e`;
 it carries the pairing key the local hub expects.
 
-Load `.output/chrome-mv3` through **Load unpacked** in `chrome://extensions`, in
+Load `build/chrome-mv3` through **Load unpacked** in `chrome://extensions`, in
 both Chrome and Canary. The extension id is pinned, so the same build gets the
 same origin in both.
 
 - [docs/SPEC.md](docs/SPEC.md) - what it does, and the rules it holds to
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - how it is put together
+- [docs/DEPLOY.md](docs/DEPLOY.md) - putting the hub on your own account
+- [docs/RELEASE.md](docs/RELEASE.md) - packaging it for the Chrome Web Store
+- [docs/PRIVACY.md](docs/PRIVACY.md) - what leaves the browser, and where to
 - [docs/adr/](docs/adr/) - decisions and why they went that way
+
+## Licence
+
+[MIT](LICENSE).

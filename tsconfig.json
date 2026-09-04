@@ -14,7 +14,7 @@
 
   "exclude": [
     "node_modules",
-    ".output",
+    "build",
     ".wxt/types",
     ".wxt/eslint-auto-imports.mjs"
   ],

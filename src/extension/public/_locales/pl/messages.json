@@ -22,6 +22,10 @@
   "devices_heading": {
     "message": "Urządzenia"
   },
+  "sidebar_resize": {
+    "message": "Zmień szerokość panelu bocznego",
+    "description": "Accessible name of the draggable divider between the sidebar and the list."
+  },
   "windows_heading": {
     "message": "Okna"
   },
@@ -96,11 +100,35 @@
   "onboarding_step_connect": {
     "message": "2. Połącz tę przeglądarkę"
   },
+  "onboarding_found": {
+    "message": "W innej karcie otwarty jest Worker. Jeśli to hub, który przed chwilą wdrożyłeś, połącz się z nim:"
+  },
   "onboarding_url_label": {
     "message": "Adres Workera"
   },
+  "onboarding_url_warning": {
+    "message": "Co się zmienia, gdy zmienia się ten adres"
+  },
+  "onboarding_url_warning_data": {
+    "message": "Stary hub zostaje na twoim koncie razem ze wszystkimi kartami i zakładkami, które trzyma. Nowy adres to nowy, pusty hub; nic się nie przenosi."
+  },
+  "onboarding_url_warning_devices": {
+    "message": "Pozostałe przeglądarki nadal celują w stary adres, więc przestają widzieć tę, dopóki nie sparujesz każdej z osobna."
+  },
+  "onboarding_url_warning_permission": {
+    "message": "Uprawnienie nadane staremu adresowi zostaje nadane, a nowy wymaga osobnej zgody."
+  },
+  "onboarding_url_warning_rename": {
+    "message": "Zmiana nazwy Workera na ekranie wdrożenia Cloudflare robi dokładnie to samo, bo to z nazwy powstaje adres."
+  },
   "onboarding_name_label": {
     "message": "Nazwa tej przeglądarki"
+  },
+  "onboarding_sync_label": {
+    "message": "Używaj tego huba w moich pozostałych przeglądarkach Chrome"
+  },
+  "onboarding_sync_note": {
+    "message": "Chrome przenosi adres i klucz do przeglądarek zalogowanych na to samo konto Google, więc parują się bez wpisywania. Klucz przechodzi wtedy przez to konto."
   },
   "onboarding_connect": {
     "message": "Połącz"
@@ -133,6 +161,26 @@
   },
   "menu_close_window": {
     "message": "Zamknij okno"
+  },
+  "window_closed": {
+    "message": "Zamknięte $date$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "tab_closed": {
+    "message": "Zamknięte"
+  },
+  "menu_forget_window": {
+    "message": "Usuń z historii"
+  },
+  "action_pending": {
+    "message": "Trwa…"
+  },
+  "command_no_answer": {
+    "message": "Ta przeglądarka nie odpowiedziała."
   },
   "menu_restore_window": {
     "message": "Odtwórz okno tutaj"

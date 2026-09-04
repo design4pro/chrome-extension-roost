@@ -41,8 +41,15 @@ html {
   line-height: 20px;
 }
 
+/*
+ * The size is repeated here on purpose. Chrome injects `body { font-size: 75% }`
+ * into every extension page, so a page that only sets `html` renders its
+ * unstyled text at 9.75px - three quarters of what the rest of the browser
+ * uses, and the one thing that gives the panel away as not being Chrome's own.
+ */
 body {
   margin: 0;
+  font-size: 13px;
   background: var(--cr-surface1);
   color: var(--cr-on-surface);
 }

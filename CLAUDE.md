@@ -19,7 +19,7 @@ Node 24. `.nvmrc` pins it - `nvm use` before anything else, because the default
 | `pnpm test`                               | vitest, four projects: `shared`, `extension`, `worker`, `tooling` |
 | `pnpm e2e`                                | Playwright with the built extension loaded                        |
 
-Run `pnpm build:extension` before `pnpm e2e`: the suite loads `.output/chrome-mv3`
+Run `pnpm build:extension` before `pnpm e2e`: the suite loads `build/chrome-mv3`
 from disk and will happily test a stale build. `pnpm build` is deliberately the
 Worker instead - Workers Builds fills its build command from that script, and
 the one-click deploy fails for a stranger if it points at the extension.

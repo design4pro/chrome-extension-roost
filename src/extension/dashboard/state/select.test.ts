@@ -47,6 +47,7 @@ const mirror = (): Mirror => ({
       bounds: null,
       focused: true,
       tabOrder: ['t1', 't2', 't3'],
+      closedAt: null,
     },
   },
   tabGroups: {
@@ -119,7 +120,10 @@ describe('the tab list', () => {
   it('searches every device when nothing is selected', () => {
     const rows = buildRows(mirror(), null, 'alpha')
     expect(rows).toEqual([
-      expect.objectContaining({ id: 't1', context: { deviceLabel: 'Chrome' } }),
+      expect.objectContaining({
+        id: 't1',
+        context: { deviceLabel: 'Chrome', closed: false },
+      }),
     ])
   })
 
@@ -245,5 +249,49 @@ describe('the bookmark list', () => {
     expect(
       buildRows(withBookmarks(), null, 'alpha').map((row) => row.id),
     ).toEqual(['t1', 'link'])
+  })
+})
+
+describe('closed windows', () => {
+  const withHistory = (): Mirror => {
+    const base = mirror()
+    return {
+      ...base,
+      windows: {
+        ...base.windows,
+        older: { ...base.windows.w1!, tabOrder: ['t4'], closedAt: 1000 },
+        newer: { ...base.windows.w1!, tabOrder: ['t5'], closedAt: 2000 },
+      },
+      tabs: {
+        ...base.tabs,
+        t4: tab('older', 'Delta'),
+        t5: tab('newer', 'Epsilon'),
+      },
+    }
+  }
+
+  it('puts what is open first and the rest newest first', () => {
+    const nodes = buildTree(withHistory(), 'device-a', new Set(['device-a']))
+    const windows = nodes.filter((node) => node.kind === 'window')
+
+    expect(windows.map((node) => node.id)).toEqual(['w1', 'newer', 'older'])
+    expect(windows.map((node) => node.closedAt)).toEqual([null, 2000, 1000])
+  })
+
+  it('says which search results are in a window that is gone', () => {
+    const rows = buildRows(withHistory(), null, 'psilon')
+
+    // The tab is still worth finding - it is how a closed window is found at
+    // all - but a result that looks live and is not is worse than no result.
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      kind: 'tab',
+      context: { deviceLabel: 'Chrome', closed: true },
+    })
+  })
+
+  it('leaves a result from a window that is still open unmarked', () => {
+    const rows = buildRows(withHistory(), null, 'Alpha')
+    expect(rows[0]).toMatchObject({ context: { closed: false } })
   })
 })

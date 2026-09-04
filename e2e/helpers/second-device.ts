@@ -4,6 +4,7 @@ import type { ClientFrame, ServerFrame } from '#/shared/protocol/messages'
 import { PROTOCOL_VERSION } from '#/shared/protocol/ops'
 import { WS_SUBPROTOCOL } from '#/shared/protocol/ws'
 import { PAIRING_SECRET } from '../fixtures/extension'
+import { forgetBookmarks } from './seed'
 
 /**
  * Another browser, without another browser.
@@ -14,6 +15,8 @@ import { PAIRING_SECRET } from '../fixtures/extension'
  */
 export interface SecondDevice {
   deviceId: string
+  /** The next unused batch number for this device, from the hub's point of view. */
+  nextClientSeq: () => number
   send: (frame: ClientFrame) => void
   next: (
     type: ServerFrame['type'],
@@ -24,6 +27,17 @@ export interface SecondDevice {
 }
 
 const WORKER = 'http://localhost:3011'
+
+/**
+ * Batch numbers taken from the clock rather than counted.
+ *
+ * The hub drops a frame whose `clientSeq` it has already applied - that is what
+ * makes a client's replay after a reconnect safe. Every test connects a second
+ * device under the same id, and Playwright reloads this module for each spec
+ * file, so a counter would restart at one and have the hub quietly ignore
+ * everything the next file seeds. The clock never goes back.
+ */
+let clientSeq = Date.now()
 
 export async function connectSecondDevice(
   deviceId = '22222222-2222-4222-8222-222222222222',
@@ -54,6 +68,7 @@ export async function connectSecondDevice(
 
   const device: SecondDevice = {
     deviceId,
+    nextClientSeq: () => (clientSeq += 1),
     send: (frame) => socket.send(encode(frame)),
 
     async next(type, predicate, timeoutMs = 5000) {
@@ -88,6 +103,7 @@ export async function connectSecondDevice(
     lastClientSeq: 0,
   })
   await device.next('welcome')
+  await forgetBookmarks(device)
 
   return device
 }

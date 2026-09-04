@@ -16,7 +16,17 @@ const windowData = (deviceId: string, tabOrder: string[]): WindowData => ({
   bounds: null,
   focused: true,
   tabOrder,
+  closedAt: null,
 })
+
+/**
+ * A frame carrying something other than a device description.
+ *
+ * Every hello now logs one of those, so a test waiting for "the first frame
+ * with ops in it" would otherwise catch a device instead of what it seeded.
+ */
+const aboutTabs = (frame: { ops: Op[] }): boolean =>
+  frame.ops.some((op) => !(op.op === 'upsert' && op.entity === 'device'))
 
 const openWindow = (deviceId: string, windowId: string): Op => ({
   op: 'window_snapshot',
@@ -54,6 +64,29 @@ describe('UserHub', () => {
     expect((await client.next('changes')).ops).toEqual([])
   })
 
+  it('puts a device in every other sidebar as soon as it says hello', async () => {
+    const hub = freshHub()
+    const a = await connect(hub, A)
+    a.hello()
+    await a.next('welcome')
+
+    // The name, the OS and the versions travel in the hello and nowhere else,
+    // so a device that never sends ops still has to become visible.
+    const b = await connect(hub, B)
+    b.hello()
+    await b.next('welcome')
+
+    const changes = await b.next(
+      'changes',
+      (frame) => frame.ops.length > 0 && frame.ops[0]?.entity === 'device',
+    )
+    expect(changes.ops[0]).toMatchObject({
+      op: 'upsert',
+      entity: 'device',
+      id: A,
+    })
+  })
+
   it('acks the sender and tells everyone else', async () => {
     const hub = freshHub()
     const a = await connect(hub, A)
@@ -65,7 +98,7 @@ describe('UserHub', () => {
     a.send({ type: 'ops', clientSeq: 1, ops: [openWindow(A, 'w1')] })
 
     expect(await a.next('ack')).toMatchObject({ clientSeq: 1 })
-    const changes = await b.next('changes', (frame) => frame.ops.length > 0)
+    const changes = await b.next('changes', aboutTabs)
     expect(changes.ops[0]).toMatchObject({ op: 'window_snapshot', id: 'w1' })
   })
 
@@ -83,10 +116,10 @@ describe('UserHub', () => {
     // back would be a second apply of the same change.
     const b = await connect(hub, B)
     b.hello()
-    await b.next('changes', (frame) => frame.ops.length > 0)
+    await b.next('changes', aboutTabs)
     await expect(
       Promise.race([
-        a.next('changes'),
+        a.next('changes', aboutTabs),
         new Promise((resolve) => setTimeout(() => resolve('nothing'), 50)),
       ]),
     ).resolves.toBe('nothing')

@@ -31,11 +31,38 @@ It finishes with an address like `https://roost.<your-subdomain>.workers.dev`.
 
 ## 3. Connect the browser
 
-Paste that address into the extension's **Worker address** field, name the
-browser, and press **Connect**. Chrome will ask for permission to talk to that
-host; the extension cannot ask for it before you say where the host is.
+Open that address once - Cloudflare offers it as a link when the deploy
+finishes. The extension watches your open tabs for a `workers.dev` address and
+offers it as a button, so connecting is one click and no typing. The button is a
+guess about which Worker is yours; pressing it is what checks, and a Worker that
+does not know your key is refused rather than paired.
 
-Repeat both fields in your other browser, with the same key.
+Nothing found, or your hub is on your own domain? Paste the address into the
+**Worker address** field and press **Connect**. Either way Chrome asks for
+permission to talk to that host - the extension cannot ask before it knows where
+the host is.
+
+Tick **Use this hub in my other Chrome browsers** if you would rather not repeat
+this. Chrome then carries the address and the key to every browser signed in to
+the same Google account, and they pair without typing. It is off by default,
+because it means the key travels through that account instead of staying in the
+two browsers you put it in.
+
+Otherwise repeat both fields in your other browser, with the same key.
+
+## Changing the address later
+
+The **Repair** button in the dashboard banner reopens this screen with the
+address filled in. Before you change it, know what changes with it:
+
+- the old hub stays on your account and keeps every tab and bookmark it holds;
+  a new address is a new, empty hub, and nothing moves across,
+- your other browsers still point at the old address and stop seeing this one
+  until each is paired again,
+- the permission granted for the old address stays granted, and the new one
+  has to be granted separately,
+- renaming the Worker on Cloudflare's deploy screen does all of this too - the
+  name is what the address is made of.
 
 ## Optional: your own domain
 

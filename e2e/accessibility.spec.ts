@@ -7,7 +7,6 @@ import { expect, test } from './fixtures/extension'
 /** Typed just enough for the snippets that run inside the service worker. */
 declare const chrome: {
   storage: { local: { remove: (keys: string | string[]) => Promise<void> } }
-  runtime: { reload: () => void }
 }
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
@@ -49,11 +48,9 @@ test.describe('accessibility', () => {
 
     test(`a populated dashboard in ${scheme}`, async ({
       context,
-      serviceWorker,
       dashboardUrl,
     }) => {
       const other = await connectSecondDevice()
-      await serviceWorker.evaluate(() => chrome.runtime.reload())
       await seedWindow(other, { tabs: 8 })
 
       const page = await context.newPage()
@@ -61,7 +58,7 @@ test.describe('accessibility', () => {
       await page.goto(dashboardUrl)
       await page.getByRole('treeitem', { name: /Second device/ }).click()
       await page.getByRole('treeitem', { name: /Second device page 0/ }).click()
-      await expect(page.getByRole('option').first()).toBeVisible()
+      await expect(page.getByRole('listitem').first()).toBeVisible()
 
       await audit(page)
       other.close()
@@ -70,11 +67,9 @@ test.describe('accessibility', () => {
 
   test('an open row menu and the restore dialog', async ({
     context,
-    serviceWorker,
     dashboardUrl,
   }) => {
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedWindow(other, { tabs: 5 })
 
     const page = await context.newPage()
@@ -82,7 +77,9 @@ test.describe('accessibility', () => {
     await page.getByRole('treeitem', { name: /Second device/ }).click()
     await page.getByRole('treeitem', { name: /Second device page 0/ }).click()
 
-    await page.getByRole('button', { name: /Second device page 1/ }).focus()
+    // Anchored: the row's own button opens with the title, while the one
+    // beside it is "Actions for ...".
+    await page.getByRole('button', { name: /^Second device page 1/ }).focus()
     await page.keyboard.press('Shift+F10')
     await expect(page.getByRole('menu')).toBeVisible()
     await audit(page)
@@ -97,11 +94,9 @@ test.describe('accessibility', () => {
 
   test('an expanded bookmark tree and the folder it opens', async ({
     context,
-    serviceWorker,
     dashboardUrl,
   }) => {
     const other = await connectSecondDevice()
-    await serviceWorker.evaluate(() => chrome.runtime.reload())
     await seedBookmarks(other)
 
     const page = await context.newPage()

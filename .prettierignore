@@ -3,7 +3,7 @@ pnpm-lock.yaml
 yarn.lock
 
 # Build output and generated types.
-.output
+build
 .wxt
 worker-configuration.d.ts
 

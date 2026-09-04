@@ -4,6 +4,7 @@ import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { browser } from 'wxt/browser'
 import { Onboarding } from './Onboarding'
 import * as probe from '../state/probe'
+import { DEPLOY_URL } from '../pairing'
 
 /**
  * The first screen, which is the only one that can leave the user stuck.
@@ -51,13 +52,26 @@ describe('Onboarding', () => {
     expect(await mintedKey()).toMatch(/^[A-Za-z0-9_-]{43}$/)
   })
 
-  it('keeps the same key across a reload of the page', async () => {
+  it('links to the deploy page under a name a screen reader can announce', async () => {
+    render(<Onboarding onDone={() => undefined} />)
+
+    const link = await screen.findByRole('link', {
+      name: 'onboarding_deploy_link',
+    })
+    expect(link).toHaveAttribute('href', DEPLOY_URL)
+  })
+
+  it('keeps the same key across a restart of the browser', async () => {
     const first = render(<Onboarding onDone={() => undefined} />)
     const minted = await mintedKey()
     first.unmount()
 
-    // Cloudflare already has this key by now; generating another one here
-    // would pair the browser with a hub that has never heard of it.
+    // Deploying happens on Cloudflare's site and takes minutes, so the browser
+    // can well be restarted in between - which is what empties session storage.
+    // Cloudflare already has this key by now; generating another one here would
+    // pair the browser with a hub that has never heard of it.
+    await fakeBrowser.storage.session.clear()
+
     render(<Onboarding onDone={() => undefined} />)
     expect(await mintedKey()).toBe(minted)
   })
@@ -101,6 +115,88 @@ describe('Onboarding', () => {
         'onboarding_error_unreachable',
       ),
     )
+  })
+
+  it('offers a Worker found in another tab, and pairs with it on one click', async () => {
+    vi.spyOn(probe, 'probeWorker').mockResolvedValue('ok')
+    await fakeBrowser.tabs.create({ url: `${HUB}/` })
+    const onDone = vi.fn()
+    render(<Onboarding onDone={onDone} />)
+
+    const minted = await mintedKey()
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'roost.example.workers.dev' }),
+    )
+
+    // Nothing was typed: the address came from the tab, the key from this
+    // screen, and the name from the browser itself.
+    await waitFor(() => expect(onDone).toHaveBeenCalledOnce())
+    expect(await fakeBrowser.storage.local.get(null)).toMatchObject({
+      workerUrl: HUB,
+      pairingSecret: minted,
+    })
+  })
+
+  it('says so when the found Worker does not know this key', async () => {
+    vi.spyOn(probe, 'probeWorker').mockResolvedValue('wrong_key')
+    await fakeBrowser.tabs.create({ url: `${HUB}/` })
+    render(<Onboarding onDone={() => undefined} />)
+    await mintedKey()
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'roost.example.workers.dev' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'onboarding_error_wrong_key',
+    )
+    expect(await fakeBrowser.storage.local.get('workerUrl')).toEqual({})
+  })
+
+  it('carries the pairing to other browsers only when asked', async () => {
+    vi.spyOn(probe, 'probeWorker').mockResolvedValue('ok')
+    render(<Onboarding onDone={() => undefined} />)
+    const minted = await mintedKey()
+
+    fill('onboarding_url_label', HUB)
+    fireEvent.click(screen.getByLabelText('onboarding_sync_label'))
+    submit()
+
+    await waitFor(async () =>
+      expect(await fakeBrowser.storage.sync.get(null)).toEqual({
+        workerUrl: HUB,
+        pairingSecret: minted,
+      }),
+    )
+  })
+
+  it('leaves nothing in the synced account when the box is clear', async () => {
+    vi.spyOn(probe, 'probeWorker').mockResolvedValue('ok')
+    const onDone = vi.fn()
+    render(<Onboarding onDone={onDone} />)
+    await mintedKey()
+
+    fill('onboarding_url_label', HUB)
+    submit()
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledOnce())
+    expect(await fakeBrowser.storage.sync.get(null)).toEqual({})
+  })
+
+  it('adopts the key a sibling browser already paired with', async () => {
+    // Minting a second key here would pair this browser with a hub that has
+    // never heard of it, which is the whole failure the sync is there to stop.
+    await fakeBrowser.storage.sync.set({
+      workerUrl: HUB,
+      pairingSecret: 'the-key-the-hub-knows',
+    })
+    render(<Onboarding onDone={() => undefined} />)
+
+    expect(await mintedKey()).toBe('the-key-the-hub-knows')
+    const address: HTMLInputElement = screen.getByLabelText(
+      'onboarding_url_label',
+    )
+    expect(address.value).toBe(HUB)
   })
 
   it('refuses an address that is not https before asking for anything', async () => {

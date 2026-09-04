@@ -27,6 +27,7 @@ export async function seedWindow(
         bounds: null,
         focused: false,
         tabOrder: tabIds,
+        closedAt: null,
       },
       groups: [
         {
@@ -58,7 +59,7 @@ export async function seedWindow(
     },
   ]
 
-  device.send({ type: 'ops', clientSeq: 1, ops })
+  device.send({ type: 'ops', clientSeq: device.nextClientSeq(), ops })
   await device.next('ack')
 }
 
@@ -68,10 +69,30 @@ export async function seedWindow(
  * Bookmarks are mirrored per browser, so this is the only way a test gets a
  * second tree to copy from - there is no merging and no second Chrome.
  */
-export async function seedBookmarks(
-  device: SecondDevice,
-  clientSeq = 2,
-): Promise<void> {
+/** Every bookmark id `seedBookmarks` writes, and so every one it can take back. */
+const BOOKMARK_IDS = ['b-bar', 'b-folder', 'b-link']
+
+/**
+ * Take back the bookmarks this device seeded, whenever it was.
+ *
+ * The hub outlives the run, and a window is replaced wholesale by the next
+ * snapshot - bookmarks are not. Without this they pile up under the second
+ * device and turn up in the sidebar of a test that never asked for them.
+ */
+export async function forgetBookmarks(device: SecondDevice): Promise<void> {
+  device.send({
+    type: 'ops',
+    clientSeq: device.nextClientSeq(),
+    ops: BOOKMARK_IDS.map((id) => ({
+      op: 'delete' as const,
+      entity: 'bookmark' as const,
+      id,
+    })),
+  })
+  await device.next('ack')
+}
+
+export async function seedBookmarks(device: SecondDevice): Promise<void> {
   const bookmark = (
     id: string,
     partial: Partial<Omit<BookmarkSeed, 'deviceId'>>,
@@ -94,7 +115,7 @@ export async function seedBookmarks(
 
   device.send({
     type: 'ops',
-    clientSeq,
+    clientSeq: device.nextClientSeq(),
     ops: [
       bookmark('b-bar', {
         title: 'Bookmarks bar',

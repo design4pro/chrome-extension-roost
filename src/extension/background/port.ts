@@ -22,6 +22,14 @@ export interface PortHubDeps {
 }
 
 export interface PortHub {
+  /**
+   * Take a dashboard that has connected.
+   *
+   * The port arrives from the entrypoint rather than from a listener here: the
+   * worker is usually asleep when the panel is opened, and by the time this hub
+   * exists the event that woke it has already been handed out.
+   */
+  accept: (port: Browser.runtime.Port) => void
   /** Tell every open dashboard what just changed. */
   broadcast: (ops: Op[]) => void
   /** Tell every open dashboard that the connection changed. */
@@ -40,7 +48,7 @@ export function createPortHub(deps: PortHubDeps): PortHub {
     }
   }
 
-  deps.browser.runtime.onConnect.addListener((port) => {
+  const accept = (port: Browser.runtime.Port) => {
     if (port.name !== PORT_NAME) return
 
     ports.add(port)
@@ -61,9 +69,11 @@ export function createPortHub(deps: PortHubDeps): PortHub {
         connection: deps.connection(),
       }),
     )
-  })
+  }
 
   return {
+    accept,
+
     broadcast(ops) {
       if (ops.length === 0) return
       for (const port of ports) {

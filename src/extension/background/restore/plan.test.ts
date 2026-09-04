@@ -24,6 +24,7 @@ const window = (extra: Partial<WindowData> = {}): WindowData => ({
   bounds: { left: 10, top: 20, width: 800, height: 600 },
   focused: false,
   tabOrder: [],
+  closedAt: null,
   ...extra,
 })
 

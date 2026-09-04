@@ -155,8 +155,29 @@ export class UserHub extends DurableObject<HubEnv> {
     const pending = this.pendingCommands(attachment.deviceId)
     if (pending.items.length > 0) sendFrame(ws, pending)
 
-    const op = this.setPresence(attachment.deviceId, true)
-    if (op) this.log([op], attachment.deviceId)
+    // The hello is where a device says what it is, and the only place: the
+    // name, the OS and the versions never arrive as ops. Recording it here is
+    // what puts the device in everyone's sidebar, presence included.
+    this.log([this.describe(attachment.deviceId, hello)], attachment.deviceId)
+  }
+
+  /** Write down what a device says about itself, and return the op to log. */
+  private describe(deviceId: string, hello: Hello): Op {
+    const data = {
+      name: hello.name,
+      os: hello.os,
+      browserVersion: hello.browserVersion,
+      extensionVersion: hello.extensionVersion,
+      online: true,
+      lastSeen: Date.now(),
+    }
+    this.sql.exec(
+      `INSERT INTO devices (id, data) VALUES (?, ?)
+       ON CONFLICT(id) DO UPDATE SET data = excluded.data`,
+      deviceId,
+      JSON.stringify(data),
+    )
+    return { op: 'upsert', entity: 'device', id: deviceId, data }
   }
 
   private onOps(ws: WebSocket, deviceId: string, frame: OpsFrame): void {

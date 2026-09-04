@@ -31,6 +31,8 @@ export interface WindowNode {
   deviceId: string
   label: string
   tabCount: number
+  /** When it was closed, or null while it is still open. */
+  closedAt: number | null
   level: 2
 }
 
@@ -58,7 +60,7 @@ export interface TabRow {
   id: string
   data: TabData
   /** Where this tab lives, for the rows a search returns from everywhere. */
-  context?: { deviceLabel: string }
+  context?: { deviceLabel: string; closed?: boolean }
 }
 
 export interface BookmarkRow {
@@ -94,7 +96,14 @@ export function buildTree(
     })
     if (!expanded.has(id)) continue
 
-    for (const [windowId, window] of sorted(mirror.windows, () => 0)) {
+    // Open windows in the order they arrived, then the closed ones newest
+    // first: history reads downwards, and what is still open is not history.
+    for (const [windowId, window] of sorted(
+      mirror.windows,
+      ([, a], [, b]) =>
+        Number(a.closedAt !== null) - Number(b.closedAt !== null) ||
+        (b.closedAt ?? 0) - (a.closedAt ?? 0),
+    )) {
       if (window.deviceId !== id) continue
       nodes.push({
         kind: 'window',
@@ -104,6 +113,7 @@ export function buildTree(
         // thing to one, and it is what the user recognises it by.
         label: mirror.tabs[window.tabOrder[0] ?? '']?.title ?? '',
         tabCount: window.tabOrder.length,
+        closedAt: window.closedAt,
         level: 2,
       })
     }
@@ -227,7 +237,12 @@ function searchRows(mirror: Mirror, query: string): Row[] {
         kind: 'tab' as const,
         id,
         data: tab,
-        context: label(tab.deviceId),
+        context: {
+          ...label(tab.deviceId),
+          // A search reaches into closed windows too, so a result has to be
+          // able to say that clicking it will not take you anywhere.
+          closed: mirror.windows[tab.windowId]?.closedAt !== null,
+        },
       })),
     ...Object.entries(mirror.bookmarks)
       .filter(([, bookmark]) => matchesBookmark(bookmark, query))

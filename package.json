@@ -2,6 +2,25 @@
   "name": "roost",
   "private": true,
   "version": "0.1.0",
+  "description": "A Chrome extension and a Cloudflare Worker that keep the tabs, tab groups, windows and bookmarks of every browser you use in one place, on infrastructure you own.",
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "tab-manager",
+    "bookmarks",
+    "cloudflare-workers",
+    "durable-objects",
+    "wxt"
+  ],
+  "homepage": "https://github.com/design4pro/chrome-extension-roost#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/design4pro/chrome-extension-roost.git"
+  },
+  "bugs": {
+    "url": "https://github.com/design4pro/chrome-extension-roost/issues"
+  },
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.15.0",
   "engines": {
@@ -13,6 +32,7 @@
   "scripts": {
     "dev": "wxt",
     "dev:worker": "wrangler dev --port 3011",
+    "dev:worker:e2e": "rm -rf .wrangler/e2e-state && wrangler dev --port 3011 --persist-to .wrangler/e2e-state",
     "build": "wrangler deploy --dry-run --outdir .worker-build",
     "build:extension": "wxt build",
     "zip": "wxt zip",
@@ -24,7 +44,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
-    "e2e:update": "playwright test --update-snapshots",
+    "e2e:update": "playwright test --update-snapshots=changed",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
     "verify:cloud": "tsx scripts/verify-cloud.ts",
