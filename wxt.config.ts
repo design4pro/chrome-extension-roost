@@ -19,6 +19,9 @@ const MANIFEST_KEY =
 
 export default defineConfig({
   srcDir: 'src/extension',
+  // `build` rather than WXT's dotted default: this is a directory the user is
+  // told to open in "Load unpacked", and a hidden one is a bad instruction.
+  outDir: 'build',
   // Stated rather than left to the default, which resolves against the repo
   // root and would leave `_locales` out of the build.
   publicDir: 'src/extension/public',

@@ -43,7 +43,7 @@ possible, and it is weaker than an identity provider in front of the door.
 
 ```bash
 pnpm install
-pnpm dev             # the extension, rebuilt on save (.output/chrome-mv3)
+pnpm dev             # the extension, rebuilt on save (build/chrome-mv3)
 pnpm dev:worker      # the Worker, on http://localhost:3011
 pnpm build           # what Cloudflare runs: a dry-run deploy of the Worker
 pnpm build:extension # the extension bundle
@@ -54,7 +54,7 @@ pnpm e2e             # Playwright, against a real Chromium with the extension lo
 Copy `.dev.vars.example` to `.dev.vars` before `pnpm dev:worker` or `pnpm e2e`;
 it carries the pairing key the local hub expects.
 
-Load `.output/chrome-mv3` through **Load unpacked** in `chrome://extensions`, in
+Load `build/chrome-mv3` through **Load unpacked** in `chrome://extensions`, in
 both Chrome and Canary. The extension id is pinned, so the same build gets the
 same origin in both.
 

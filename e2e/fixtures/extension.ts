@@ -18,7 +18,7 @@ declare const chrome: {
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const EXTENSION_PATH = path.join(root, '.output/chrome-mv3-e2e')
+const EXTENSION_PATH = path.join(root, 'build/chrome-mv3-e2e')
 const WORKER_URL = 'http://localhost:3011'
 /** The same key `.dev.vars` gives the Worker the e2e run talks to. */
 const PAIRING_SECRET = 'local-development-pairing-key'
