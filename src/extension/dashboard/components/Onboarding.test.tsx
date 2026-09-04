@@ -4,6 +4,7 @@ import { fakeBrowser } from 'wxt/testing/fake-browser'
 import { browser } from 'wxt/browser'
 import { Onboarding } from './Onboarding'
 import * as probe from '../state/probe'
+import { DEPLOY_URL } from '../pairing'
 
 /**
  * The first screen, which is the only one that can leave the user stuck.
@@ -49,6 +50,15 @@ describe('Onboarding', () => {
     render(<Onboarding onDone={() => undefined} />)
 
     expect(await mintedKey()).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  })
+
+  it('links to the deploy page under a name a screen reader can announce', async () => {
+    render(<Onboarding onDone={() => undefined} />)
+
+    const link = await screen.findByRole('link', {
+      name: 'onboarding_deploy_link',
+    })
+    expect(link).toHaveAttribute('href', DEPLOY_URL)
   })
 
   it('keeps the same key across a reload of the page', async () => {

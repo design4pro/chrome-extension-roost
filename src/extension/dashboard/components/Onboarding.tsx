@@ -147,13 +147,26 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           {copied ? t('onboarding_copied') : ''}
         </p>
 
+        {/*
+          Cloudflare's own badge, served from the extension rather than from
+          their CDN: an extension page that fetches a remote image tells
+          Cloudflare whenever someone opens this screen, and shows nothing at
+          all when the deploy page is the one thing the user cannot reach.
+          The wording is baked into the artwork, so the localised string is
+          the accessible name.
+        */}
         <a
           href={DEPLOY_URL}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-block"
+          className="mt-2 inline-block rounded-menu focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          {t('onboarding_deploy_link')}
+          <img
+            src="/deploy-button.svg"
+            alt={t('onboarding_deploy_link')}
+            width={184}
+            height={39}
+          />
         </a>
 
         <h2 className="mt-6 text-[13px] font-medium">
