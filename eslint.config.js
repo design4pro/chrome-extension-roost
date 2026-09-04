@@ -87,6 +87,7 @@ export default [
       '.wxt/**',
       '.output/**',
       '.wrangler/**',
+      '.worker-build/**',
       '.github/**',
       '.claude/**',
       'coverage/**',
