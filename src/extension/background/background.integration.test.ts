@@ -51,6 +51,16 @@ const fakeSocket = () => {
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+/** Started with whatever storage the test left, and without a live hub. */
+const startBare = () =>
+  startBackground({
+    browser,
+    openSocket: fakeSocket().openSocket,
+    clock: () => Date.now(),
+    uuid: () => 'id',
+    random: () => 0.5,
+  })
+
 let socket: ReturnType<typeof fakeSocket>
 
 const start = async (): Promise<Background> => {
@@ -82,17 +92,24 @@ beforeEach(async () => {
 })
 
 describe('the background worker end to end', () => {
-  it('does nothing at all before onboarding', async () => {
+  it('syncs nothing at all before onboarding', async () => {
     await fakeBrowser.storage.local.remove('workerUrl')
-    expect(
-      await startBackground({
-        browser,
-        openSocket: fakeSocket().openSocket,
-        clock: () => Date.now(),
-        uuid: () => 'id',
-        random: () => 0.5,
-      }),
-    ).toBeUndefined()
+    expect(await startBare()).toBeUndefined()
+  })
+
+  it('still opens the dashboard from the toolbar before onboarding', async () => {
+    // The only way in: with no hub there is nothing to sync, but the toolbar
+    // button is what the user reaches for to set one up.
+    await fakeBrowser.storage.local.remove('workerUrl')
+    await startBare()
+
+    await fakeBrowser.action.onClicked.trigger({ id: 1 } as never)
+    await settle()
+
+    const tabs = await fakeBrowser.tabs.query({})
+    expect(tabs.map((tab) => tab.url)).toContain(
+      browser.runtime.getURL('/dashboard.html'),
+    )
   })
 
   it('connects as the device it minted on first run', async () => {

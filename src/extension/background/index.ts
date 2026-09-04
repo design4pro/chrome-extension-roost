@@ -57,6 +57,14 @@ export interface Background {
 export async function startBackground(
   deps: BackgroundDeps,
 ): Promise<Background | undefined> {
+  // Before the first await, and before the early return below: Chrome only
+  // hands the event that woke the service worker to listeners that exist by
+  // the end of the top-level evaluation, and until onboarding has run this
+  // button is the only way into the extension at all.
+  deps.browser.action.onClicked.addListener(
+    () => void openDashboard(deps.browser),
+  )
+
   const local = createStore(deps.browser.storage.local)
   const session = createStore(deps.browser.storage.session)
 
@@ -237,10 +245,6 @@ export async function startBackground(
       void client.handleAlarm(alarm.name).then(() => hub.announce())
     }
   })
-
-  deps.browser.action.onClicked.addListener(
-    () => void openDashboard(deps.browser),
-  )
 
   // A key pasted into the dashboard lands in storage, not here: this is what
   // turns that write into another connection attempt without a restart.
